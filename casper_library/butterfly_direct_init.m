@@ -70,6 +70,10 @@ function butterfly_direct_init(blk, varargin)
       'bin_pt_in', 17, ...
       'bitgrowth', 'off', ...
       'downshift', 'off', ...
+      'floating_point', 'off', ...
+      'float_type', 'single', ...
+      'exp_width', 6, ...
+      'frac_width', 25, ...  
       'async', 'off', ...
       'add_latency', 1, ...
       'mult_latency', 2, ...
@@ -112,6 +116,10 @@ function butterfly_direct_init(blk, varargin)
   bin_pt_in         = get_var('bin_pt_in', 'defaults', defaults, varargin{:});
   bitgrowth         = get_var('bitgrowth', 'defaults', defaults, varargin{:});
   downshift         = get_var('downshift', 'defaults', defaults, varargin{:});
+  floating_point    = get_var('floating_point', 'defaults', defaults, varargin{:});
+  float_type        = get_var('float_type', 'defaults', defaults, varargin{:});
+  exp_width         = get_var('exp_width', 'defaults', defaults, varargin{:});
+  frac_width        = get_var('frac_width', 'defaults', defaults, varargin{:});  
   async             = get_var('async', 'defaults', defaults, varargin{:});
   bram_latency      = get_var('bram_latency', 'defaults', defaults, varargin{:});
   add_latency       = get_var('add_latency', 'defaults', defaults, varargin{:});
@@ -141,6 +149,20 @@ function butterfly_direct_init(blk, varargin)
     return;
   end
 
+  % Check if floating point is being used
+  if floating_point == 1
+      float_en = 'on';
+  else
+      float_en = 'off';  
+  end
+
+  if float_type == 2
+      float_type_sel = 'custom';
+  else
+      float_type_sel = 'single';
+  end
+  
+  
   % bin_pt_in == -1 is a special case for backwards compatibility
   if bin_pt_in == -1
     bin_pt_in = input_bit_width - 1;
@@ -158,8 +180,8 @@ function butterfly_direct_init(blk, varargin)
 
   %TODO
   if use_dsp48_adders,
-      set_param(blk, 'add_latency', '2');
-      add_latency = 2;
+      set_param(blk, 'add_latency', '4');
+      add_latency = 4;
   end
 
   % Optimize twiddle for coeff = 0, 1, or alternating 0-1
@@ -223,7 +245,7 @@ function butterfly_direct_init(blk, varargin)
   %%%%%%%%%%%%%%%%%%
   % Start drawing! %
   %%%%%%%%%%%%%%%%%%
-
+  
   % Delete all lines.
   delete_lines(blk);
 
@@ -259,7 +281,7 @@ function butterfly_direct_init(blk, varargin)
           'bram_latency', num2str(bram_latency), ...
           'conv_latency', num2str(conv_latency)};
   end
-     
+  
   if strcmp(twiddle_type, 'twiddle_coeff_1'),
       params = { params{:}, ...
         'input_bit_width', num2str(input_bit_width), ...
@@ -283,6 +305,10 @@ function butterfly_direct_init(blk, varargin)
         'coeff_generation', coeff_generation, ...
         'cal_bits', num2str(cal_bits), ...
         'n_bits_rotation', num2str(n_bits_rotation), ...
+        'floating_point', float_en, ...
+        'float_type', float_type_sel, ...
+        'exp_width', num2str(exp_width), ...
+        'frac_width', num2str(frac_width), ...   
         'max_fanout', num2str(max_fanout), ...
         'use_hdl', use_hdl, ...
         'use_embedded', use_embedded, ...

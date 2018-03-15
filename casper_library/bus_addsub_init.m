@@ -29,6 +29,7 @@ function bus_addsub_init(blk, varargin)
     'n_bits_a', [8] ,  'bin_pt_a',     [3],   'type_a',   1, ...
     'n_bits_b', [4 ]  ,  'bin_pt_b',     [3],   'type_b',   [1], ...
     'n_bits_out', 8 ,     'bin_pt_out',   [3],   'type_out', [1], ...
+    'floating_point', 'off', 'float_type', 'single', 'exp_width', 6, 'frac_width', 25, ...  
     'overflow', [1], 'quantization', [0], 'add_implementation', 'fabric core', ...
     'latency', 1, 'async', 'off', 'cmplx', 'on', 'misc', 'on'
   };  
@@ -57,6 +58,10 @@ function bus_addsub_init(blk, varargin)
   n_bits_out   = get_var('n_bits_out', 'defaults', defaults, varargin{:});
   bin_pt_out   = get_var('bin_pt_out', 'defaults', defaults, varargin{:});
   type_out     = get_var('type_out', 'defaults', defaults, varargin{:});
+  floating_point    = get_var('floating_point', 'defaults', defaults, varargin{:});
+  float_type        = get_var('float_type', 'defaults', defaults, varargin{:});
+  exp_width         = get_var('exp_width', 'defaults', defaults, varargin{:});
+  frac_width        = get_var('frac_width', 'defaults', defaults, varargin{:});   
   overflow     = get_var('overflow', 'defaults', defaults, varargin{:});
   quantization = get_var('quantization', 'defaults', defaults, varargin{:});
   add_implementation = get_var('add_implementation', 'defaults', defaults, varargin{:});
@@ -67,8 +72,32 @@ function bus_addsub_init(blk, varargin)
  
   delete_lines(blk);
 
+  if floating_point
+        preci_type = 'Full';
+        
+        switch float_type
+            case 1
+                n_bits_a = 32;
+                bin_pt_a = 0;
+                type_a = 0;
+                n_bits_b = 32;
+                bin_pt_b = 0;
+                type_b = 0;
+            case 2
+                n_bits_a = frac_width + exp_width;
+                bin_pt_a = 0;
+                type_a = 0;
+                n_bits_b = frac_width + exp_width;
+                bin_pt_b = 0;
+                type_b = 0;
+        end
+
+  else
+        preci_type = 'User defined';
+  end  
+  
   %default state, do nothing 
-  if (n_bits_a == 0) | (n_bits_b == 0),
+  if ((n_bits_a == 0) | (n_bits_b == 0)) & (~floating_point)
     clean_blocks(blk);
     save_state(blk, 'defaults', defaults, varargin{:});  % Save and back-populate mask parameter values
     clog('exiting bus_add_init',{'trace', 'bus_addsub_init_debug'});
@@ -201,6 +230,7 @@ function bus_addsub_init(blk, varargin)
 
   clog(['making ',num2str(comp),' AddSubs'],{'bus_addsub_init_debug'});
 
+ 
   for index = 1:comp
     switch type_o(index),
       case 0,
@@ -251,7 +281,7 @@ function bus_addsub_init(blk, varargin)
     add_name = ['addsub',num2str(index)]; 
     reuse_block(blk, add_name, 'xbsIndex_r4/AddSub', ...
       'mode', m, 'latency', num2str(latency), ...
-      'en', async, 'precision', 'User Defined', ...
+      'en', async, 'precision', preci_type, ...
       'n_bits', num2str(n_bits_out(index)), 'bin_pt', num2str(bin_pt_out(index)), ...  
       'arith_type', arith_type, 'quantization', quant, 'overflow', of, ... 
       'pipelined', 'on', 'use_behavioral_HDL', use_behavioral_HDL, 'hw_selection', hw_selection, ... 
