@@ -130,11 +130,27 @@ add_line(blk, 'bi/1', 'bus_create/1');
 add_line(blk, 'sync_in/1', 'bus_create/2');
 add_line(blk, 'ai/1', 'bus_create/3');
 
+if floating_point == 1
+    float_en = 'on';
+else
+    float_en = 'off';  
+end
+
+if float_type == 2
+    float_type_sel = 'custom';
+else
+    float_type_sel = 'single';
+end
+
 % Coefficient generator
 reuse_block(blk, 'coeff_gen', 'casper_library_ffts_twiddle_coeff_gen/coeff_gen', ...
         'FFTSize', 'FFTSize', 'Coeffs', mat2str(Coeffs), ...
         'coeff_bit_width', 'coeff_bit_width', 'StepPeriod', 'StepPeriod', ...
         'async', async, 'misc', 'on', ...
+        'floating_point', float_en, ...
+        'float_type', float_type_sel, ...
+        'exp_width', num2str(exp_width), ...
+        'frac_width', num2str(frac_width), ... 
         'bram_latency', 'bram_latency', 'mult_latency', 'mult_latency', ...
         'add_latency', 'add_latency', 'conv_latency', 'conv_latency', ...
         'coeffs_bit_limit', 'coeffs_bit_limit', 'coeff_sharing', coeff_sharing, ...
@@ -192,55 +208,88 @@ reuse_block(blk, 'bus_mult', 'casper_library_bus/bus_mult', ...
 	add_line(blk,'bus_expand/2','bus_mult/3');
 	add_line(blk,'bus_expand/1','bus_mult/2');
 
-%convert
-if strcmp(quantization, 'Truncate'), quant = '0';
-elseif strcmp(quantization, 'Round  (unbiased: +/- Inf)'), quant = '1';
-elseif strcmp(quantization, 'Round  (unbiased: Even Values)'), quant = '2';
-else %TODO 
-end
+    
+if floating_point
+    outputWidth = [1 n_inputs*(input_bit_width*2)];   %cut sync out
+    outputBinaryPt = [0 0];                           
+    outputArithmeticType = [2 0];
 
-if strcmp(overflow, 'Wrap'), of = '0';
-elseif strcmp(overflow, 'Saturate'), of = '1';
-elseif strcmp(overflow, 'Flag as error'), of = '2';
-else %TODO
-end
+    %cut dvalid out again
+    if strcmp(async, 'on'),
+      outputWidth = [outputWidth, 1];
+      outputBinaryPt = [outputBinaryPt, 0];
+      outputArithmeticType = [outputArithmeticType, 2];
+    end
 
-reuse_block(blk, 'bus_convert', 'casper_library_bus/bus_convert', ...
-      'n_bits_in', 'repmat(input_bit_width+coeff_bit_width+1, 1, n_inputs)', ...
-      'bin_pt_in', '(bin_pt_in+coeff_bit_width-1)', 'cmplx', 'on', ...
-      'n_bits_out', 'input_bit_width+1', 'bin_pt_out', 'bin_pt_in', ...
-      'quantization', quant, 'overflow', of, ...
-      'latency', 'conv_latency', 'of', 'off', 'misc', 'on', ...
-      'Position', [515 64 570 366]);
-add_line(blk, 'bus_mult/1', 'bus_convert/1'); 
-add_line(blk, 'bus_mult/2', 'bus_convert/2'); 
-add_line(blk, 'bus_convert/1', 'bwo/1');
+    reuse_block(blk, 'bus_expand1', 'casper_library_flow_control/bus_expand', ...
+            'mode', 'divisions of arbitrary size', ...
+            'outputNum', num2str(inputNum-1), ...
+            'outputWidth', mat2str(outputWidth) , ...
+            'outputBinaryPt', mat2str(outputBinaryPt) , ...
+            'outputArithmeticType', mat2str(outputArithmeticType), ...
+            'Position', [600 212 650 363]);
 
-outputWidth = [1 n_inputs*(input_bit_width*2)];   %cut sync out
-outputBinaryPt = [0 0];                           
-outputArithmeticType = [2 0];
+    add_line(blk, 'bus_mult/1', 'bwo/1'); 
+    add_line(blk, 'bus_mult/2', 'bus_expand1/1'); 
+    
+    add_line(blk,'bus_expand1/1','sync_out/1');
+    add_line(blk,'bus_expand1/2','ao/1');
+    
+    if strcmp(async, 'on'), add_line(blk,'bus_expand1/3','dvalid/1'); end
+    
+else
+    %convert
+    if strcmp(quantization, 'Truncate'), quant = '0';
+    elseif strcmp(quantization, 'Round  (unbiased: +/- Inf)'), quant = '1';
+    elseif strcmp(quantization, 'Round  (unbiased: Even Values)'), quant = '2';
+    else %TODO 
+    end
 
-%cut dvalid out again
-if strcmp(async, 'on'),
-  outputWidth = [outputWidth, 1];
-  outputBinaryPt = [outputBinaryPt, 0];
-  outputArithmeticType = [outputArithmeticType, 2];
-end
+    if strcmp(overflow, 'Wrap'), of = '0';
+    elseif strcmp(overflow, 'Saturate'), of = '1';
+    elseif strcmp(overflow, 'Flag as error'), of = '2';
+    else %TODO
+    end
 
-reuse_block(blk, 'bus_expand1', 'casper_library_flow_control/bus_expand', ...
-        'mode', 'divisions of arbitrary size', ...
-        'outputNum', num2str(inputNum-1), ...
-        'outputWidth', mat2str(outputWidth) , ...
-        'outputBinaryPt', mat2str(outputBinaryPt) , ...
-        'outputArithmeticType', mat2str(outputArithmeticType), ...
-        'Position', [600 212 650 363]);
+    reuse_block(blk, 'bus_convert', 'casper_library_bus/bus_convert', ...
+          'n_bits_in', 'repmat(input_bit_width+coeff_bit_width+1, 1, n_inputs)', ...
+          'bin_pt_in', '(bin_pt_in+coeff_bit_width-1)', 'cmplx', 'on', ...
+          'n_bits_out', 'input_bit_width+1', 'bin_pt_out', 'bin_pt_in', ...
+          'quantization', quant, 'overflow', of, ...
+          'latency', 'conv_latency', 'of', 'off', 'misc', 'on', ...
+          'Position', [515 64 570 366]);
+    add_line(blk, 'bus_mult/1', 'bus_convert/1'); 
+    add_line(blk, 'bus_mult/2', 'bus_convert/2'); 
+    add_line(blk, 'bus_convert/1', 'bwo/1');
 
-add_line(blk,'bus_convert/2','bus_expand1/1');
+    outputWidth = [1 n_inputs*(input_bit_width*2)];   %cut sync out
+    outputBinaryPt = [0 0];                           
+    outputArithmeticType = [2 0];
 
-add_line(blk,'bus_expand1/1','sync_out/1');
-add_line(blk,'bus_expand1/2','ao/1');
+    %cut dvalid out again
+    if strcmp(async, 'on'),
+      outputWidth = [outputWidth, 1];
+      outputBinaryPt = [outputBinaryPt, 0];
+      outputArithmeticType = [outputArithmeticType, 2];
+    end
 
-if strcmp(async, 'on'), add_line(blk,'bus_expand1/3','dvalid/1'); end
+    reuse_block(blk, 'bus_expand1', 'casper_library_flow_control/bus_expand', ...
+            'mode', 'divisions of arbitrary size', ...
+            'outputNum', num2str(inputNum-1), ...
+            'outputWidth', mat2str(outputWidth) , ...
+            'outputBinaryPt', mat2str(outputBinaryPt) , ...
+            'outputArithmeticType', mat2str(outputArithmeticType), ...
+            'Position', [600 212 650 363]);
+
+    add_line(blk,'bus_convert/2','bus_expand1/1');
+
+    add_line(blk,'bus_expand1/1','sync_out/1');
+    add_line(blk,'bus_expand1/2','ao/1');
+
+    if strcmp(async, 'on'), add_line(blk,'bus_expand1/3','dvalid/1'); end
+
+end    
+    
 
 clean_blocks(blk);
 

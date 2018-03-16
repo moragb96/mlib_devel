@@ -72,15 +72,20 @@ function bus_addsub_init(blk, varargin)
  
   delete_lines(blk);
 
+  % Check if floating point is selected. If so, set the bit widths
+  % accordingly. Note: A reinterpret block follows the 
   if floating_point
         preci_type = 'Full';
         
         switch float_type
             case 1
-                n_bits_a = 32;
+                % Set frac width and exp width for single precision
+                frac_width = 24;
+                exp_width = 8;
+                n_bits_a = frac_width + exp_width;
                 bin_pt_a = 0;
                 type_a = 0;
-                n_bits_b = 32;
+                n_bits_b = frac_width + exp_width;
                 bin_pt_b = 0;
                 type_b = 0;
             case 2
@@ -288,9 +293,36 @@ function bus_addsub_init(blk, varargin)
       'Position', [xpos-add_w/2 ypos_tmp xpos+add_w/2 ypos_tmp+add_d-20]);
     ypos_tmp = ypos_tmp + add_d;
   
-    add_line(blk, ['a_debus/',num2str(a_src(index))], [add_name,'/1']);
-    add_line(blk, ['b_debus/',num2str(b_src(index))], [add_name,'/2']);
-
+    reintp_a_name = ['reintp_a',num2str(index)]; 
+    reintp_b_name = ['reintp_b',num2str(index)]; 
+    
+    reuse_block(blk, reintp_a_name, 'xbsIndex_r4/Reinterpret', ...
+      'force_arith_type', 'on', ...
+      'arith_type', 'Floating-point', ...
+      'force_bin_pt', 'on', ...
+      'bin_pt',num2str(frac_width), ...
+      'Position', [xpos-add_w/2 ypos_tmp xpos+add_w/2 ypos_tmp+add_d-20]);
+  
+  
+    reuse_block(blk, reintp_b_name, 'xbsIndex_r4/Reinterpret', ...
+      'force_arith_type', 'on', ...
+      'arith_type', 'Floating-point', ...
+      'force_bin_pt', 'on', ...
+      'bin_pt',num2str(frac_width), ...
+      'Position', [xpos-add_w/2 ypos_tmp xpos+add_w/2 ypos_tmp+add_d-20]);
+    ypos_tmp = ypos_tmp + add_d;
+    
+    if floating_point
+        add_line(blk, ['a_debus/',num2str(a_src(index))], [reintp_a_name,'/1']);
+        add_line(blk, ['b_debus/',num2str(b_src(index))], [reintp_b_name,'/1']);   
+        add_line(blk, [reintp_a_name,'/1'], [add_name,'/1']);
+        add_line(blk, [reintp_b_name,'/1'], [add_name,'/2']);        
+        
+    else
+        add_line(blk, ['a_debus/',num2str(a_src(index))], [add_name,'/1']);
+        add_line(blk, ['b_debus/',num2str(b_src(index))], [add_name,'/2']);        
+    end
+    
     if strcmp(async, 'on')
       add_line(blk, 'en/1', [add_name,'/3']);
     end
@@ -322,9 +354,24 @@ function bus_addsub_init(blk, varargin)
     'inputNum', num2str(comp), ...
     'Position', [xpos-bus_create_w/2 ypos_tmp-add_d*comp/2 xpos+bus_create_w/2 ypos_tmp+add_d*comp/2]);
   
-  for index = 1:comp,
-    add_line(blk, ['addsub',num2str(index),'/1'], ['op_bussify/',num2str(index)]);
-  end
+    if floating_point
+      for idx = 1:comp,
+        reintp_out_name = ['reintp_out',num2str(idx)]; 
+        reuse_block(blk, reintp_out_name, 'xbsIndex_r4/Reinterpret', ...
+          'force_arith_type', 'on', ...
+          'arith_type', 'Unsigned', ...
+          'force_bin_pt', 'on', ...
+          'bin_pt',num2str(0), ...
+          'Position', [xpos-add_w/2 ypos_tmp xpos+add_w/2 ypos_tmp+add_d-20]);
+        add_line(blk, ['addsub',num2str(idx),'/1'], [reintp_out_name,'/1']);          
+        add_line(blk, [reintp_out_name,'/1'], ['op_bussify/',num2str(idx)]);
+      end
+    else
+      for idx = 1:comp,
+        add_line(blk, ['addsub',num2str(idx),'/1'], ['op_bussify/',num2str(idx)]);
+      end
+    end
+    
 
   %output port/s
   ypos_tmp = ypos + add_d*comp/2;
