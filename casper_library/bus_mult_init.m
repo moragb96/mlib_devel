@@ -29,6 +29,12 @@ function bus_mult_init(blk, varargin)
     'n_bits_a', 0,  'bin_pt_a',     4,   'type_a',   1, 'cmplx_a', 'off', ...
     'n_bits_b', [4],  'bin_pt_b',     3,   'type_b',   1, 'cmplx_b', 'on', ...
     'n_bits_out', 12 ,  'bin_pt_out',   7,   'type_out', 1, ...
+    'floating_point', 'off', ...
+    'float_type', 'single', ...
+    'exp_width', 6, ...
+    'frac_width', 19, ...  
+    'input_vec_a', 1, ...
+    'input_vec_b', 1, ...
     'overflow', 0,      'quantization', 0,   'misc', 'on', ...
     'mult_latency', 3,  'add_latency', 1 , 'conv_latency', 1, ...
     'max_fanout', 2, 'fan_latency', 0, ...
@@ -61,6 +67,12 @@ function bus_mult_init(blk, varargin)
   n_bits_out                 = get_var('n_bits_out', 'defaults', defaults, varargin{:});
   bin_pt_out                 = get_var('bin_pt_out', 'defaults', defaults, varargin{:});
   type_out                   = get_var('type_out', 'defaults', defaults, varargin{:});
+  floating_point             = get_var('floating_point', 'defaults', defaults, varargin{:});
+  float_type                 = get_var('float_type', 'defaults', defaults, varargin{:});
+  exp_width                  = get_var('exp_width', 'defaults', defaults, varargin{:});
+  frac_width                 = get_var('frac_width', 'defaults', defaults, varargin{:});    
+  input_vec_a                = get_var('input_vec_a', 'defaults', defaults, varargin{:});
+  input_vec_b                = get_var('input_vec_b', 'defaults', defaults, varargin{:});
   overflow                   = get_var('overflow', 'defaults', defaults, varargin{:});
   quantization               = get_var('quantization', 'defaults', defaults, varargin{:});
   mult_latency               = get_var('mult_latency', 'defaults', defaults, varargin{:});
@@ -74,7 +86,7 @@ function bus_mult_init(blk, varargin)
   delete_lines(blk);
 
   %default state, do nothing 
-  if (n_bits_a == 0 | n_bits_b == 0),
+  if ((n_bits_a == 0 | n_bits_b == 0)&(~floating_point)),
     clean_blocks(blk);
     save_state(blk, 'defaults', defaults, varargin{:});  % Save and back-populate mask parameter values
     clog('exiting bus_mult_init', {log_group, 'trace'});
@@ -98,25 +110,75 @@ function bus_mult_init(blk, varargin)
     dup_latency = fan_latency;
   end
 
+  
+  % Check for floating point
+  if floating_point == 1
+      float_en = 'on';
+      
+      if float_type == 2
+          float_type_sel = 'custom';
+
+          n_bits_a = repmat((frac_width + exp_width), 1, input_vec_a);
+          bin_pt_a = 0;
+          type_a = 0;
+          n_bits_b = repmat((frac_width + exp_width), input_vec_b,1);
+          bin_pt_b = 0;
+          type_b = 0;
+      else
+          float_type_sel = 'single';
+          exp_width = 8;
+          frac_width = 24;
+
+          n_bits_a = repmat((frac_width + exp_width), 1, input_vec_a);
+          bin_pt_a = 0;
+          type_a = 0;
+          n_bits_b = repmat((frac_width + exp_width), 1, input_vec_b);
+          bin_pt_b = 0;
+          type_b = 0;
+      end
+  else
+      float_en = 'off';  
+  end
+  
+  
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   % check input lists for consistency %
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
  
-  lenba = length(n_bits_a); lenpa = length(bin_pt_a); lenta = length(type_a);
-  a = [lenba, lenpa, lenta];  
-  unique_a = unique(a);
-  compa = unique_a(length(unique_a));
+  if floating_point
+      lenba = input_vec_a; lenpa = length(0); lenta = length(0);
+      a = [lenba, lenpa, lenta];  
+      unique_a = unique(a);
+      compa = unique_a(length(unique_a));
 
-  lenbb = length(n_bits_b); lenpb = length(bin_pt_b); lentb = length(type_b);
-  b = [lenbb, lenpb, lentb];  
-  unique_b = unique(b);
-  compb = unique_b(length(unique_b));
+      lenbb = input_vec_b; lenpb = length(0); lentb = length(0);
+      b = [lenbb, lenpb, lentb];  
+      unique_b = unique(b);
+      compb = unique_b(length(unique_b));
 
-  lenbo = length(n_bits_out); lenpo = length(bin_pt_out); lento = length(type_out); 
-  lenq = length(quantization); leno = length(overflow);
-  o = [lenbo, lenpo, lento, lenq, leno];
-  unique_o = unique(o);
-  compo = unique_o(length(unique_o));
+      lenbo = length(input_vec_a); lenpo = length(0); lento = length(0); 
+      lenq = length(0); leno = length(0);
+      o = [lenbo, lenpo, lento, lenq, leno];
+      unique_o = unique(o);
+      compo = unique_o(length(unique_o));  
+  else
+      lenba = length(n_bits_a); lenpa = length(bin_pt_a); lenta = length(type_a);
+      a = [lenba, lenpa, lenta];  
+      unique_a = unique(a);
+      compa = unique_a(length(unique_a));
+
+      lenbb = length(n_bits_b); lenpb = length(bin_pt_b); lentb = length(type_b);
+      b = [lenbb, lenpb, lentb];  
+      unique_b = unique(b);
+      compb = unique_b(length(unique_b));
+
+      lenbo = length(n_bits_out); lenpo = length(bin_pt_out); lento = length(type_out); 
+      lenq = length(quantization); leno = length(overflow);
+      o = [lenbo, lenpo, lento, lenq, leno];
+      unique_o = unique(o);
+      compo = unique_o(length(unique_o));
+  end
+  
 
   too_many_a = length(unique_a) > 2;
   conflict_a = (length(unique_a) == 2) && (unique_a(1) ~= 1);
@@ -334,6 +396,7 @@ function bus_mult_init(blk, varargin)
     'Position', [xpos-bus_expand_w/2 ypos_tmp-mult_d*compb/2 xpos+bus_expand_w/2 ypos_tmp+mult_d*compb/2]);
   add_line(blk, 'repb/1', 'b_debus/1');
   ypos_tmp = ypos_tmp + mult_d*compa + yinc;
+  
 
   %%%%%%%%%%%%%%%%%%
   % multiplication %
@@ -342,95 +405,196 @@ function bus_mult_init(blk, varargin)
   xpos = xpos + xinc + mult_w/2;  
   ypos_tmp = ypos; %reset ypos 
 
-  for index = 1:compo,
-    clog([num2str(index),': type= ', num2str(type_out(index)), ...
-    ' quantization= ', num2str(quantization(index)), ...
-    ' overflow= ',num2str(overflow(index))], log_group);
-    switch type_out(index),
-      case 0,
-        arith_type = 'Unsigned';
-      case 1,
-        arith_type = 'Signed';
-      otherwise,
-        clog(['unknown arithmetic type ',num2str(arith_type)], {'error', log_group});
-        error(['bus_mult_init: unknown arithmetic type ',num2str(arith_type)]);
-    end
-    switch quantization(index),
-      case 0,
-        quant = 'Truncate';
-      case 1,
-        quant = 'Round  (unbiased: +/- Inf)';
-    end  
-    switch overflow(index),
-      case 0,
-        of = 'Wrap';
-      case 1,
-        of = 'Saturate';
-      case 2,
-        of = 'Flag as error';
-    end  
-    clog(['output ',num2str(index),': (',num2str(n_bits_out(index)), ' ', ...
-      num2str(bin_pt_out(index)),') ', arith_type,' ',quant,' ', of], log_group); 
-
-    mult_name = ['mult',num2str(index)]; 
-    clog(['drawing ',mult_name], log_group);
-   
-    if strcmp(cmplx_a, 'on') && strcmp(cmplx_b, 'on'), %need complex multiplication
-      if dup_latency >= 0, in_latency = 1;
-      else, in_latency = 0;
-      end
-      reuse_block(blk, mult_name, 'casper_library_multipliers/cmult',  ...
-        'n_bits_a', num2str(n_bits_a(a_src(index))), 'bin_pt_a', num2str(bin_pt_a(a_src(index))), ...
-        'n_bits_b', num2str(n_bits_b(b_src(index))), 'bin_pt_b', num2str(bin_pt_b(b_src(index))), ...
-        'n_bits_ab', num2str(n_bits_out(index)), 'bin_pt_ab', num2str(bin_pt_out(index)), ...
-        'quantization', quant, 'overflow', of, 'conjugated', 'off', ...
-        'multiplier_implementation', multiplier_implementation, ...
-        'in_latency', num2str(in_latency), 'mult_latency', num2str(mult_latency), ... 
-        'add_latency', num2str(add_latency), 'conv_latency', num2str(conv_latency), ...
-        'Position', [xpos-mult_w/2 ypos_tmp xpos+mult_w/2 ypos_tmp+mult_d-20] );
-    else,  
-      %standard multiplication 
-      if strcmp(multiplier_implementation, 'behavioral HDL'),
-        use_behavioral_HDL = 'on';
-        use_embedded = 'off';
-      else
-        use_behavioral_HDL = 'off';
-        if strcmp(multiplier_implementation, 'embedded multiplier core'),
-          use_embedded = 'on';
-        elseif strcmp(multiplier_implementation, 'standard core'),
-          use_embedded = 'off';
-        else,
+  if floating_point
+      % Floating Point
+      %%%%%%%%%%%%%%%%
+      for index = 1:compo,
+        clog([num2str(index),': type= ', num2str(type_out(index)), ...
+        ' quantization= ', num2str(quantization(index)), ...
+        ' overflow= ',num2str(overflow(index))], log_group);
+        switch type_out(index),
+          case 0,
+            arith_type = 'Unsigned';
+          case 1,
+            arith_type = 'Signed';
+          otherwise,
+            clog(['unknown arithmetic type ',num2str(arith_type)], {'error', log_group});
+            error(['bus_mult_init: unknown arithmetic type ',num2str(arith_type)]);
         end
+        switch quantization(index),
+          case 0,
+            quant = 'Truncate';
+          case 1,
+            quant = 'Round  (unbiased: +/- Inf)';
+        end  
+        switch overflow(index),
+          case 0,
+            of = 'Wrap';
+          case 1,
+            of = 'Saturate';
+          case 2,
+            of = 'Flag as error';
+        end  
+        clog(['output ',num2str(index),': (',num2str(n_bits_out(index)), ' ', ...
+          num2str(bin_pt_out(index)),') ', arith_type,' ',quant,' ', of], log_group); 
+
+        mult_name = ['mult',num2str(index)]; 
+        clog(['drawing ',mult_name], log_group);
+
+        if strcmp(cmplx_a, 'on') && strcmp(cmplx_b, 'on'), %need complex multiplication
+          if dup_latency >= 0, in_latency = 1;
+          else, in_latency = 0;
+          end
+          reuse_block(blk, mult_name, 'casper_library_multipliers/cmult',  ...
+            'n_bits_a', num2str(n_bits_a(a_src(index))), 'bin_pt_a', num2str(bin_pt_a(a_src(index))), ...
+            'n_bits_b', num2str(n_bits_b(b_src(index))), 'bin_pt_b', num2str(bin_pt_b(b_src(index))), ...
+            'n_bits_ab', num2str(n_bits_out(index)), 'bin_pt_ab', num2str(bin_pt_out(index)), ...
+            'quantization', quant, 'overflow', of, 'conjugated', 'off', ...
+            'multiplier_implementation', multiplier_implementation, ...
+            'in_latency', num2str(in_latency), 'mult_latency', num2str(mult_latency), ... 
+            'add_latency', num2str(add_latency), 'conv_latency', num2str(conv_latency), ...
+            'Position', [xpos-mult_w/2 ypos_tmp xpos+mult_w/2 ypos_tmp+mult_d-20] );
+        else,  
+          %standard multiplication 
+          if strcmp(multiplier_implementation, 'behavioral HDL'),
+            use_behavioral_HDL = 'on';
+            use_embedded = 'off';
+          else
+            use_behavioral_HDL = 'off';
+            if strcmp(multiplier_implementation, 'embedded multiplier core'),
+              use_embedded = 'on';
+            elseif strcmp(multiplier_implementation, 'standard core'),
+              use_embedded = 'off';
+            else,
+            end
+          end
+          reuse_block(blk, mult_name, 'xbsIndex_r4/Mult', ...
+            'latency', 'mult_latency', 'precision', 'Full', ...
+            'n_bits', num2str(n_bits_out(index)), 'bin_pt', num2str(bin_pt_out(index)), ...  
+            'arith_type', arith_type, 'quantization', quant, 'overflow', of, ... 
+            'use_behavioral_HDL', use_behavioral_HDL, 'use_embedded', use_embedded, ...          
+            'Position', [xpos-mult_w/2 ypos_tmp xpos+mult_w/2 ypos_tmp+mult_d-20]);
+        end
+        ypos_tmp = ypos_tmp + mult_d;
+        clog(['done'], 'bus_mult_init_debug');
+
+        add_line(blk, ['a_debus/',num2str(a_src(index))], [mult_name,'/1']);
+        add_line(blk, ['b_debus/',num2str(b_src(index))], [mult_name,'/2']);
+      end %for
+
+      ypos_tmp = ypos + mult_d*(compb+compa) + 2*yinc;
+      if strcmp(misc, 'on'),
+        if strcmp(cmplx_a, 'on') && strcmp(cmplx_b, 'on'),
+          latency = ['mult_latency+add_latency+conv_latency+fan_latency'];
+        else,
+          latency = ['mult_latency+fan_latency'];
+        end
+
+        reuse_block(blk, 'dmisc', 'xbsIndex_r4/Delay', ...
+          'latency', latency, 'reg_retiming', 'on', ...
+          'Position', [xpos-del_w/2 ypos_tmp-del_d/2 xpos+del_w/2 ypos_tmp+del_d/2]);
+        add_line(blk, 'misci/1', 'dmisc/1');
       end
-      reuse_block(blk, mult_name, 'xbsIndex_r4/Mult', ...
-        'latency', 'mult_latency', 'precision', 'User Defined', ...
-        'n_bits', num2str(n_bits_out(index)), 'bin_pt', num2str(bin_pt_out(index)), ...  
-        'arith_type', arith_type, 'quantization', quant, 'overflow', of, ... 
-        'use_behavioral_HDL', use_behavioral_HDL, 'use_embedded', use_embedded, ...
-        'Position', [xpos-mult_w/2 ypos_tmp xpos+mult_w/2 ypos_tmp+mult_d-20]);
-    end
-    ypos_tmp = ypos_tmp + mult_d;
-    clog(['done'], 'bus_mult_init_debug');
- 
-    add_line(blk, ['a_debus/',num2str(a_src(index))], [mult_name,'/1']);
-    add_line(blk, ['b_debus/',num2str(b_src(index))], [mult_name,'/2']);
-  end %for
+      xpos = xpos + xinc + mult_d/2;
+      
+  else
+      % Fixed Point
+      %%%%%%%%%%%%%
+      
+     for index = 1:compo,
+        clog([num2str(index),': type= ', num2str(type_out(index)), ...
+        ' quantization= ', num2str(quantization(index)), ...
+        ' overflow= ',num2str(overflow(index))], log_group);
+        switch type_out(index),
+          case 0,
+            arith_type = 'Unsigned';
+          case 1,
+            arith_type = 'Signed';
+          otherwise,
+            clog(['unknown arithmetic type ',num2str(arith_type)], {'error', log_group});
+            error(['bus_mult_init: unknown arithmetic type ',num2str(arith_type)]);
+        end
+        switch quantization(index),
+          case 0,
+            quant = 'Truncate';
+          case 1,
+            quant = 'Round  (unbiased: +/- Inf)';
+        end  
+        switch overflow(index),
+          case 0,
+            of = 'Wrap';
+          case 1,
+            of = 'Saturate';
+          case 2,
+            of = 'Flag as error';
+        end  
+        clog(['output ',num2str(index),': (',num2str(n_bits_out(index)), ' ', ...
+          num2str(bin_pt_out(index)),') ', arith_type,' ',quant,' ', of], log_group); 
 
-  ypos_tmp = ypos + mult_d*(compb+compa) + 2*yinc;
-  if strcmp(misc, 'on'),
-    if strcmp(cmplx_a, 'on') && strcmp(cmplx_b, 'on'),
-      latency = ['mult_latency+add_latency+conv_latency+fan_latency'];
-    else,
-      latency = ['mult_latency+fan_latency'];
-    end
+        mult_name = ['mult',num2str(index)]; 
+        clog(['drawing ',mult_name], log_group);
 
-    reuse_block(blk, 'dmisc', 'xbsIndex_r4/Delay', ...
-      'latency', latency, 'reg_retiming', 'on', ...
-      'Position', [xpos-del_w/2 ypos_tmp-del_d/2 xpos+del_w/2 ypos_tmp+del_d/2]);
-    add_line(blk, 'misci/1', 'dmisc/1');
+        if strcmp(cmplx_a, 'on') && strcmp(cmplx_b, 'on'), %need complex multiplication
+          if dup_latency >= 0, in_latency = 1;
+          else, in_latency = 0;
+          end
+          reuse_block(blk, mult_name, 'casper_library_multipliers/cmult',  ...
+            'n_bits_a', num2str(n_bits_a(a_src(index))), 'bin_pt_a', num2str(bin_pt_a(a_src(index))), ...
+            'n_bits_b', num2str(n_bits_b(b_src(index))), 'bin_pt_b', num2str(bin_pt_b(b_src(index))), ...
+            'n_bits_ab', num2str(n_bits_out(index)), 'bin_pt_ab', num2str(bin_pt_out(index)), ...
+            'quantization', quant, 'overflow', of, 'conjugated', 'off', ...
+            'multiplier_implementation', multiplier_implementation, ...
+            'in_latency', num2str(in_latency), 'mult_latency', num2str(mult_latency), ... 
+            'add_latency', num2str(add_latency), 'conv_latency', num2str(conv_latency), ...
+            'Position', [xpos-mult_w/2 ypos_tmp xpos+mult_w/2 ypos_tmp+mult_d-20] );
+        else,  
+          %standard multiplication 
+          if strcmp(multiplier_implementation, 'behavioral HDL'),
+            use_behavioral_HDL = 'on';
+            use_embedded = 'off';
+          else
+            use_behavioral_HDL = 'off';
+            if strcmp(multiplier_implementation, 'embedded multiplier core'),
+              use_embedded = 'on';
+            elseif strcmp(multiplier_implementation, 'standard core'),
+              use_embedded = 'off';
+            else,
+            end
+          end
+          reuse_block(blk, mult_name, 'xbsIndex_r4/Mult', ...
+            'latency', 'mult_latency', 'precision', 'User Defined', ...
+            'n_bits', num2str(n_bits_out(index)), 'bin_pt', num2str(bin_pt_out(index)), ...  
+            'arith_type', arith_type, 'quantization', quant, 'overflow', of, ... 
+            'use_behavioral_HDL', use_behavioral_HDL, 'use_embedded', use_embedded, ...
+            'Position', [xpos-mult_w/2 ypos_tmp xpos+mult_w/2 ypos_tmp+mult_d-20]);
+        end
+        ypos_tmp = ypos_tmp + mult_d;
+        clog(['done'], 'bus_mult_init_debug');
+
+        add_line(blk, ['a_debus/',num2str(a_src(index))], [mult_name,'/1']);
+        add_line(blk, ['b_debus/',num2str(b_src(index))], [mult_name,'/2']);
+      end %for
+
+      ypos_tmp = ypos + mult_d*(compb+compa) + 2*yinc;
+      if strcmp(misc, 'on'),
+        if strcmp(cmplx_a, 'on') && strcmp(cmplx_b, 'on'),
+          latency = ['mult_latency+add_latency+conv_latency+fan_latency'];
+        else,
+          latency = ['mult_latency+fan_latency'];
+        end
+
+        reuse_block(blk, 'dmisc', 'xbsIndex_r4/Delay', ...
+          'latency', latency, 'reg_retiming', 'on', ...
+          'Position', [xpos-del_w/2 ypos_tmp-del_d/2 xpos+del_w/2 ypos_tmp+del_d/2]);
+        add_line(blk, 'misci/1', 'dmisc/1');
+      end
+      xpos = xpos + xinc + mult_d/2;
+
   end
-  xpos = xpos + xinc + mult_d/2;
+  
 
+  
+  
   %%%%%%%%%%%%%%
   % bus create %
   %%%%%%%%%%%%%%
