@@ -52,6 +52,10 @@ function cmult_init(blk, varargin)
     'bin_pt_ab', 14, ...
     'quantization', 'Truncate', ...
     'overflow', 'Wrap', ...
+    'floating_point', 'off', ...
+    'float_type', 'single', ...
+    'exp_width', 6, ...
+    'frac_width', 19, ...      
     'mult_latency', 3, ...
     'add_latency', 1, ...
     'conv_latency', 1, ...
@@ -72,6 +76,10 @@ function cmult_init(blk, varargin)
   bin_pt_a                  = get_var('bin_pt_a','defaults',defaults,varargin{:});
   bin_pt_b                  = get_var('bin_pt_b','defaults',defaults,varargin{:});
   bin_pt_ab                 = get_var('bin_pt_ab','defaults',defaults,varargin{:});
+  floating_point            = get_var('floating_point', 'defaults', defaults, varargin{:});
+  float_type                = get_var('float_type', 'defaults', defaults, varargin{:});
+  exp_width                 = get_var('exp_width', 'defaults', defaults, varargin{:});
+  frac_width                = get_var('frac_width', 'defaults', defaults, varargin{:});   
   quantization              = get_var('quantization','defaults',defaults,varargin{:});
   overflow                  = get_var('overflow','defaults',defaults,varargin{:});
   mult_latency              = get_var('mult_latency','defaults',defaults,varargin{:});
@@ -84,6 +92,43 @@ function cmult_init(blk, varargin)
   multiplier_implementation = get_var('multiplier_implementation','defaults',defaults,varargin{:});
 
   delete_lines(blk);
+  
+  
+  if floating_point
+      preci_type = 'Full';
+        
+      switch float_type
+          case 1
+              % Set frac width and exp width for single precision
+              frac_width = 24;
+              exp_width = 8;
+              n_bits_a = repmat((frac_width + exp_width), 1, length(n_bits_a));
+              bin_pt_a = 0;
+              type_a = 0;
+              n_bits_b = repmat((frac_width + exp_width), 1, length(n_bits_b));
+              bin_pt_b = 0;
+              type_b = 0;
+              n_bits_ab = repmat((frac_width + exp_width), 1, length(n_bits_ab));
+              bin_pt_out = 0;
+              type_out = 0;
+          case 2
+              n_bits_a = repmat((frac_width + exp_width), 1, length(n_bits_a));
+              bin_pt_a = 0;
+              type_a = 0;
+              n_bits_b = repmat((frac_width + exp_width), 1, length(n_bits_b));
+              bin_pt_b = 0;
+              type_b = 0;
+              n_bits_ab = repmat((frac_width + exp_width), 1, length(n_bits_ab));
+              bin_pt_out = 0;
+              type_out = 0;
+      end
+
+  else
+        preci_type = 'User defined';
+  end  
+  
+  
+  
 
   if n_bits_a == 0 || n_bits_b == 0
     clean_blocks(blk);
@@ -294,41 +339,96 @@ function cmult_init(blk, varargin)
 %    end
 %  end
 
-  %convert
-  reuse_block(blk, 'convert_re', 'xbsIndex_r4/Convert', ...
-    'en', async, 'n_bits', num2str(n_bits_ab), 'bin_pt', num2str(bin_pt_ab), ...
-    'quantization', quantization, 'overflow', overflow, 'pipeline', 'on', ...
-    'latency', num2str(conv_latency), 'Position', [595 152 640 183]);
-  add_line(blk, 'addsub_re/1', 'convert_re/1');
+  if floating_point
+      % Insert reinterpret block and coonnect to ri_to_c
+      reuse_block(blk, 'reintp_a', 'xbsIndex_r4/Reinterpret', ...
+      'force_arith_type', 'on', ...
+      'arith_type', 'Floating-point', ...
+      'force_bin_pt', 'on', ...
+      'bin_pt',num2str(0), ...
+      'Position', [100 200 120 220]);
+      add_line(blk, 'addsub_re/1', 'reintp_a/1');     
+      
+      
+      reuse_block(blk, 'reintp_b', 'xbsIndex_r4/Reinterpret', ...
+      'force_arith_type', 'on', ...
+      'arith_type', 'Floating-point', ...
+      'force_bin_pt', 'on', ...
+      'bin_pt',num2str(0), ...
+      'Position', [100 200 120 220]);
+      add_line(blk, 'addsub_im/1', 'reintp_b/1');    
+      
+      % Buggy - to be debugged!
+      
+      %if strcmp(async, 'on')
+      %  add_line(blk, 'en_expand2/1', 'convert_re/2');
+      %  add_line(blk, 'en_expand2/2', 'convert_im/2');
 
-  reuse_block(blk, 'convert_im', 'xbsIndex_r4/Convert', ...
-    'en', async, 'n_bits', num2str(n_bits_ab), 'bin_pt', num2str(bin_pt_ab), ...
-    'quantization', quantization, 'overflow', overflow, 'pipeline', 'on', ...
-     'latency', num2str(conv_latency), 'Position', [595 317 640 348]);
-  add_line(blk,'addsub_im/1','convert_im/1');
+      %  if strcmp(pipelined_enable, 'on')
+      %    reuse_block(blk, 'den', 'xbsIndex_r4/Delay', ...
+      %      'latency', num2str(latency), 'reg_retiming', 'on', ...
+      %      'Position', [600 574 635 596]);
+      %    add_line(blk, 'en_expand2/3', 'den/1');
+      %    latency = conv_latency;
+      %  else
+      %    latency = mult_latency + add_latency + conv_latency;
+      %  end
+      %end
+      
+      
+      
+      % output ports
 
-  if strcmp(async, 'on')
-    add_line(blk, 'en_expand2/1', 'convert_re/2');
-    add_line(blk, 'en_expand2/2', 'convert_im/2');
-    
-    if strcmp(pipelined_enable, 'on')
-      reuse_block(blk, 'den', 'xbsIndex_r4/Delay', ...
-        'latency', num2str(latency), 'reg_retiming', 'on', ...
-        'Position', [600 574 635 596]);
-      add_line(blk, 'en_expand2/3', 'den/1');
-      latency = conv_latency;
-    else
-      latency = mult_latency + add_latency + conv_latency;
-    end
+      reuse_block(blk, 'ri_to_c', 'casper_library_misc/ri_to_c', ...
+              'Position', [660 229 700 271]);
+      set_param([blk, '/ri_to_c'], 'LinkStatus', 'inactive');
+      add_line(blk,'reintp_a/1','ri_to_c/1');
+      add_line(blk,'reintp_b/1','ri_to_c/2');
+      
+  else
+      %convert
+      reuse_block(blk, 'convert_re', 'xbsIndex_r4/Convert', ...
+        'en', async, 'n_bits', num2str(n_bits_ab), 'bin_pt', num2str(bin_pt_ab), ...
+        'quantization', quantization, 'overflow', overflow, 'pipeline', 'on', ...
+        'latency', num2str(conv_latency), 'Position', [595 152 640 183]);
+      add_line(blk, 'addsub_re/1', 'convert_re/1');
+
+      reuse_block(blk, 'convert_im', 'xbsIndex_r4/Convert', ...
+        'en', async, 'n_bits', num2str(n_bits_ab), 'bin_pt', num2str(bin_pt_ab), ...
+        'quantization', quantization, 'overflow', overflow, 'pipeline', 'on', ...
+         'latency', num2str(conv_latency), 'Position', [595 317 640 348]);
+      add_line(blk,'addsub_im/1','convert_im/1');     
+      
+      
+      if strcmp(async, 'on')
+        add_line(blk, 'en_expand2/1', 'convert_re/2');
+        add_line(blk, 'en_expand2/2', 'convert_im/2');
+
+        if strcmp(pipelined_enable, 'on')
+          reuse_block(blk, 'den', 'xbsIndex_r4/Delay', ...
+            'latency', num2str(latency), 'reg_retiming', 'on', ...
+            'Position', [600 574 635 596]);
+          add_line(blk, 'en_expand2/3', 'den/1');
+          latency = conv_latency;
+        else
+          latency = mult_latency + add_latency + conv_latency;
+        end
+      end
+
+      % output ports
+
+      reuse_block(blk, 'ri_to_c', 'casper_library_misc/ri_to_c', ...
+              'Position', [660 229 700 271]);
+      set_param([blk, '/ri_to_c'], 'LinkStatus', 'inactive');
+      add_line(blk,'convert_re/1','ri_to_c/1');
+      add_line(blk,'convert_im/1','ri_to_c/2');
   end
 
-  % output ports
 
-  reuse_block(blk, 'ri_to_c', 'casper_library_misc/ri_to_c', ...
-          'Position', [660 229 700 271]);
-  set_param([blk, '/ri_to_c'], 'LinkStatus', 'inactive');
-  add_line(blk,'convert_re/1','ri_to_c/1');
-  add_line(blk,'convert_im/1','ri_to_c/2');
+  
+  
+  
+
 
   reuse_block(blk, 'ab', 'built-in/Outport', ...
           'Port', '1', ...
