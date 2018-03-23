@@ -177,16 +177,29 @@ function bus_negate_init(blk, varargin)
     end  
 
     neg_name = ['neg',num2str(index)];
-
+    reintp_in_name = ['reintp_in',num2str(index)];
+   
     position = [xpos-neg_w/2 ypos_tmp xpos+neg_w/2 ypos_tmp+neg_d-20];
 
     if floating_point
+        
+        reuse_block(blk, reintp_in_name, 'xbsIndex_r4/Reinterpret', ...
+          'force_arith_type', 'on', ...
+          'arith_type', 'Floating-point', ...
+          'force_bin_pt', 'on', ...
+          'bin_pt',num2str(frac_width), ...
+          'Position', [xpos-add_w/2 ypos_tmp xpos+add_w/2 ypos_tmp+add_d-20]);
+        
         reuse_block(blk, neg_name, 'xbsIndex_r4/Negate', ...
           'precision', 'Full', ...
           'n_bits', num2str(n_bits_in(index)), 'bin_pt', num2str(bin_pt_in(index)), ...
           'arith_type', 'Signed', ...
           'overflow', of, 'quantization', 'Truncate', 'latency', 'latency', ...  
-          'Position', position);             
+          'Position', position);           
+      
+         add_line(blk, ['debus/',num2str(index)], [reintp_in_name,'/1']);
+         add_line(blk, [reintp_in_name,'/1'], [neg_name,'/1']);
+         
     else
         reuse_block(blk, neg_name, 'xbsIndex_r4/Negate', ...
           'precision', 'User Defined', ...
@@ -194,13 +207,12 @@ function bus_negate_init(blk, varargin)
           'arith_type', 'Signed', ...
           'overflow', of, 'quantization', 'Truncate', 'latency', 'latency', ...  
           'Position', position);        
-    end
     
-
+        add_line(blk, ['debus/',num2str(index)], [neg_name,'/1']);
+    end
 
     ypos_tmp = ypos_tmp + neg_d;
 
-    add_line(blk, ['debus/',num2str(index)], [neg_name,'/1']);
   end
  
   ypos_tmp = ypos + yinc + neg_d*compi;
@@ -224,9 +236,29 @@ function bus_negate_init(blk, varargin)
     'inputNum', num2str(compo), ...
     'Position', [xpos-bus_create_w/2 ypos_tmp-neg_d*compo/2 xpos+bus_create_w/2 ypos_tmp+neg_d*compo/2]);
   
-  for index = 1:compo,
-    add_line(blk, ['neg',num2str(index),'/1'], ['bussify/',num2str(index)]);
+  if floating_point
+      for index = 1:compo,
+        
+        reintp_out_name = ['reintp_out',num2str(index)];
+        
+        reuse_block(blk, reintp_out_name, 'xbsIndex_r4/Reinterpret', ...
+          'force_arith_type', 'on', ...
+          'arith_type', 'Floating-point', ...
+          'force_bin_pt', 'on', ...
+          'bin_pt',num2str(frac_width), ...
+          'Position', [xpos-add_w/2 ypos_tmp xpos+add_w/2 ypos_tmp+add_d-20]);  
+          
+        add_line(blk, ['neg',num2str(index),'/1'], [reintp_out_name,'/1']);
+        add_line(blk, [reintp_out_name,'/1'], ['bussify/',num2str(index)]);
+        
+      end        
+  else
+      for index = 1:compo,
+        add_line(blk, ['neg',num2str(index),'/1'], ['bussify/',num2str(index)]);
+      end      
   end
+  
+
 
   %%%%%%%%%%%%%%%%%
   % output port/s %
