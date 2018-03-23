@@ -54,20 +54,22 @@ function complex_conj_init(blk, varargin)
 
   delete_lines(blk);
 
-  if floating_point == 1
-    float_en = 'on';
-    n_bits = exp_width + frac_width;
-    bin_pt = 0;
-  else
-    float_en = 'off';  
-  end
-
   if float_type == 2
     float_type_sel = 'custom';
   else
     float_type_sel = 'single';
+    exp_width = 8;
+    frac_width = 24;
   end
   
+  if floating_point == 1
+    float_en = 'on';
+    n_bits = (exp_width+frac_width);
+    bin_pt = 0;
+  else
+    float_en = 'off';  
+  end
+ 
   
   %default setup for library
   if n_inputs == 0,
