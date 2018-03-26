@@ -54,8 +54,8 @@ function cmult_init(blk, varargin)
     'overflow', 'Wrap', ...
     'floating_point', 'off', ...
     'float_type', 'single', ...
-    'exp_width', 6, ...
-    'frac_width', 19, ...      
+    'exp_width', 8, ...
+    'frac_width', 24, ...      
     'mult_latency', 3, ...
     'add_latency', 1, ...
     'conv_latency', 1, ...
@@ -125,24 +125,26 @@ function cmult_init(blk, varargin)
 
   else
         preci_type = 'User defined';
+
+        if n_bits_a == 0 || n_bits_b == 0
+            clean_blocks(blk);
+            set_param(blk,'AttributesFormatString','');
+            save_state(blk, 'defaults', defaults, varargin{:});
+            return;
+        end
+
+          if (n_bits_a < bin_pt_a)
+              errordlg('Number of bits for a input must be greater than binary point position.'); return; end
+          if (n_bits_b < bin_pt_b)
+              errordlg('Number of bits for b input must be greater than binary point position.'); return; end
+          if (n_bits_ab < bin_pt_ab)
+              errordlg('Number of bits for ab input must be greater than binary point position.'); return; end
   end  
   
   
   
 
-  if n_bits_a == 0 || n_bits_b == 0
-    clean_blocks(blk);
-    set_param(blk,'AttributesFormatString','');
-    save_state(blk, 'defaults', defaults, varargin{:});
-    return;
-  end
 
-  if (n_bits_a < bin_pt_a)
-      errordlg('Number of bits for a input must be greater than binary point position.'); return; end
-  if (n_bits_b < bin_pt_b)
-      errordlg('Number of bits for b input must be greater than binary point position.'); return; end
-  if (n_bits_ab < bin_pt_ab)
-      errordlg('Number of bits for ab input must be greater than binary point position.'); return; end
 
   %ports
 
@@ -200,9 +202,10 @@ function cmult_init(blk, varargin)
       'outputArithmeticType', mat2str(ones(1,4)), ...
       'Position', [180 291 230 384]);
   add_line(blk, 'b_replicate/1', 'b_expand/1'); 
+
   
   %multipliers
-
+  
   if strcmp(multiplier_implementation, 'behavioral HDL')
     use_behavioral_HDL = 'on';
     use_embedded = 'off';
