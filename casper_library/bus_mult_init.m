@@ -138,6 +138,9 @@ function bus_mult_init(blk, varargin)
       end
   else
       float_en = 'off';  
+      float_type_sel = 'single';
+      exp_width = 8;
+      frac_width = 24;
   end
   
   
@@ -449,6 +452,10 @@ function bus_mult_init(blk, varargin)
             'n_bits_a', num2str(n_bits_a(a_src(index))), 'bin_pt_a', num2str(bin_pt_a(a_src(index))), ...
             'n_bits_b', num2str(n_bits_b(b_src(index))), 'bin_pt_b', num2str(bin_pt_b(b_src(index))), ...
             'n_bits_ab', num2str(n_bits_out(index)), 'bin_pt_ab', num2str(bin_pt_out(index)), ...
+            'floating_point', float_en, ...
+            'float_type', float_type_sel, ...
+            'exp_width', num2str(exp_width), ...
+            'frac_width', num2str(frac_width), ... 
             'quantization', quant, 'overflow', of, 'conjugated', 'off', ...
             'multiplier_implementation', multiplier_implementation, ...
             'in_latency', num2str(in_latency), 'mult_latency', num2str(mult_latency), ... 
@@ -501,6 +508,7 @@ function bus_mult_init(blk, varargin)
       % Fixed Point
       %%%%%%%%%%%%%
       
+     
      for index = 1:compo,
         clog([num2str(index),': type= ', num2str(type_out(index)), ...
         ' quantization= ', num2str(quantization(index)), ...
@@ -542,6 +550,10 @@ function bus_mult_init(blk, varargin)
             'n_bits_a', num2str(n_bits_a(a_src(index))), 'bin_pt_a', num2str(bin_pt_a(a_src(index))), ...
             'n_bits_b', num2str(n_bits_b(b_src(index))), 'bin_pt_b', num2str(bin_pt_b(b_src(index))), ...
             'n_bits_ab', num2str(n_bits_out(index)), 'bin_pt_ab', num2str(bin_pt_out(index)), ...
+            'floating_point', float_en, ...
+            'float_type', float_type_sel, ...
+            'exp_width', num2str(exp_width), ...
+            'frac_width', num2str(frac_width), ... 
             'quantization', quant, 'overflow', of, 'conjugated', 'off', ...
             'multiplier_implementation', multiplier_implementation, ...
             'in_latency', num2str(in_latency), 'mult_latency', num2str(mult_latency), ... 
@@ -568,29 +580,30 @@ function bus_mult_init(blk, varargin)
             'use_behavioral_HDL', use_behavioral_HDL, 'use_embedded', use_embedded, ...
             'Position', [xpos-mult_w/2 ypos_tmp xpos+mult_w/2 ypos_tmp+mult_d-20]);
         end
+        
         ypos_tmp = ypos_tmp + mult_d;
         clog(['done'], 'bus_mult_init_debug');
 
         add_line(blk, ['a_debus/',num2str(a_src(index))], [mult_name,'/1']);
         add_line(blk, ['b_debus/',num2str(b_src(index))], [mult_name,'/2']);
-      end %for
+%         add_line(blk, [mult_name,'/1'], ['a*b_bussify/',num2str(index)]);
+     end %for
 
-      ypos_tmp = ypos + mult_d*(compb+compa) + 2*yinc;
+     ypos_tmp = ypos + mult_d*(compb+compa) + 2*yinc;
       
-      if strcmp(misc, 'on'),
-        if strcmp(cmplx_a, 'on') && strcmp(cmplx_b, 'on'),
-          latency = ['mult_latency+add_latency+conv_latency+fan_latency'];
-        else,
-          latency = ['mult_latency+fan_latency'];
-        end              
+     if strcmp(misc, 'on'),
+       if strcmp(cmplx_a, 'on') && strcmp(cmplx_b, 'on'),
+         latency = ['mult_latency+add_latency+conv_latency+fan_latency'];
+       else,
+         latency = ['mult_latency+fan_latency'];
+       end              
 
-        reuse_block(blk, 'dmisc', 'xbsIndex_r4/Delay', ...
-          'latency', latency, 'reg_retiming', 'on', ...
-          'Position', [xpos-del_w/2 ypos_tmp-del_d/2 xpos+del_w/2 ypos_tmp+del_d/2]);
-        add_line(blk, 'misci/1', 'dmisc/1');
-      end
-      xpos = xpos + xinc + mult_d/2;
-
+       reuse_block(blk, 'dmisc', 'xbsIndex_r4/Delay', ...
+         'latency', latency, 'reg_retiming', 'on', ...
+         'Position', [xpos-del_w/2 ypos_tmp-del_d/2 xpos+del_w/2 ypos_tmp+del_d/2]);
+       add_line(blk, 'misci/1', 'dmisc/1');
+     end
+     
   end
   
 
@@ -599,14 +612,16 @@ function bus_mult_init(blk, varargin)
   %%%%%%%%%%%%%%
   % bus create %
   %%%%%%%%%%%%%%
-
+  xpos = xpos + xinc + mult_d/2;
   ypos_tmp = ypos + mult_d*compo/2; %reset ypos
  
   reuse_block(blk, 'a*b_bussify', 'casper_library_flow_control/bus_create', ...
     'inputNum', num2str(compo), ...
     'Position', [xpos-bus_create_w/2 ypos_tmp-mult_d*compo/2 xpos+bus_create_w/2 ypos_tmp+mult_d*compo/2]);
   
-  for index = 1:compo, add_line(blk, ['mult',num2str(index),'/1'], ['a*b_bussify/',num2str(index)]); end
+  for index = 1:compo
+      add_line(blk, ['mult',num2str(index),'/1'], ['a*b_bussify/',num2str(index)]); 
+  end
 
   %%%%%%%%%%%%%%%%%
   % output port/s %
