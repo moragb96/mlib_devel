@@ -54,6 +54,10 @@ defaults = { ...
   'bram_latency', 1, ...
   'fanout_latency', 0, ...
   'n_inputs', 1, ...
+  'floating_point', 'off', ...
+  'float_type', 'single', ...
+  'exp_width', 8, ...
+  'frac_width', 24, ...    
   'double_buffer', 0, ...
   'software_controlled', 'off', ...
   'bram_map', 'on'};
@@ -68,6 +72,10 @@ map_latency     = get_var('map_latency', 'defaults', defaults, varargin{:});
 bram_latency    = get_var('bram_latency', 'defaults', defaults, varargin{:});
 fanout_latency  = get_var('fanout_latency', 'defaults', defaults, varargin{:});
 n_inputs        = get_var('n_inputs', 'defaults', defaults, varargin{:});
+floating_point  = get_var('floating_point', 'defaults', defaults, varargin{:});
+float_type      = get_var('float_type', 'defaults', defaults, varargin{:});
+exp_width       = get_var('exp_width', 'defaults', defaults, varargin{:});
+frac_width      = get_var('frac_width', 'defaults', defaults, varargin{:});
 double_buffer   = get_var('double_buffer', 'defaults', defaults, varargin{:});
 bram_map        = get_var('bram_map', 'defaults', defaults, varargin{:});
 software_controlled = get_var('software_controlled', 'defaults', defaults, varargin{:});
@@ -76,6 +84,19 @@ mux_latency     = 1;
 yinc = 20;
 
 delete_lines(blk);
+
+if floating_point == 1
+    float_en = 'on';
+else
+    float_en = 'off';  
+end
+
+if float_type == 2
+    float_type_sel = 'custom';
+else
+    float_type_sel = 'single';
+end
+
 if isempty(map),
   clean_blocks(blk);
   set_param(blk, 'AttributesFormatString', '');
