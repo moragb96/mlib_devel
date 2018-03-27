@@ -52,7 +52,7 @@ function cmult_init(blk, varargin)
     'bin_pt_ab', 14, ...
     'quantization', 'Truncate', ...
     'overflow', 'Wrap', ...
-    'floating_point', 'off', ...
+    'floating_point', '0', ...
     'float_type', 'single', ...
     'exp_width', 8, ...
     'frac_width', 24, ...      
@@ -70,6 +70,9 @@ function cmult_init(blk, varargin)
 
   munge_block(blk,varargin);
 
+  
+
+  
   n_bits_a                  = get_var('n_bits_a','defaults',defaults,varargin{:});
   n_bits_b                  = get_var('n_bits_b','defaults',defaults,varargin{:});
   n_bits_ab                 = get_var('n_bits_ab','defaults',defaults,varargin{:});
@@ -165,7 +168,8 @@ function cmult_init(blk, varargin)
       'replication', '2', 'latency', num2str(latency), 'misc', 'off', ...
       'Position', [90 143 125 167]);
   add_line(blk, 'a/1', 'a_replicate/1'); 
- 
+
+  
   reuse_block(blk, 'b_replicate', 'casper_library_bus/bus_replicate', ...
       'replication', '2', 'latency', num2str(latency), 'misc', 'off', ...
       'Position', [90 328 125 352]);
@@ -218,7 +222,7 @@ function cmult_init(blk, varargin)
     else
     end
   end
-
+  
   if floating_point
       
       % Insert reinterpret block and connect to mult rere
@@ -525,12 +529,6 @@ function cmult_init(blk, varargin)
       add_line(blk,'convert_re/1','ri_to_c/1');
       add_line(blk,'convert_im/1','ri_to_c/2');
   end
-
-
-  
-  
-  
-
 
   reuse_block(blk, 'ab', 'built-in/Outport', ...
           'Port', '1', ...
