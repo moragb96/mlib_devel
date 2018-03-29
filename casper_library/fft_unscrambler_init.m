@@ -128,16 +128,18 @@ map_str = mat2str(map_mat);
 
 delete_lines(blk);
 
+% Check for floating point
 if floating_point == 1
-    float_en = 'on';
+    if float_type == 2
+        n_bits_in = frac_width + exp_width;
+    else
+        exp_width = 8;
+        frac_width = 24;
+        n_bits_in = frac_width + exp_width;
+    end
 else
-    float_en = 'off';  
-end
-
-if float_type == 2
-    float_type_sel = 'custom';
-else
-    float_type_sel = 'single';
+    exp_width = 8;
+    frac_width = 24;
 end
 
 % Add ports
@@ -212,10 +214,6 @@ reuse_block(blk, 'reorder', 'casper_library_reorder/reorder', ...
   'map', map_str, ... 
   'n_bits', num2str(n_bits_in * n_streams * 2), ...
   'n_inputs', num2str(2^n_inputs), ...
-  'floating_point', float_en, ...
-  'float_type', float_type_sel, ...
-  'exp_width', num2str(exp_width), ...
-  'frac_width', num2str(frac_width), ... 
   'bram_latency', num2str(bram_latency), ...
   'fanout_latency', num2str(fanout_latency), ...
   'bram_map', bram_map, 'map_latency', num2str(map_latency), ...

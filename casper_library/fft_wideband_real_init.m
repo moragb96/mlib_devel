@@ -218,6 +218,25 @@ end
 % Delete all wires.
 delete_lines(blk);
 
+% Check for floating point
+if floating_point == 1
+    float_en = 'on';
+    if float_type == 2
+        float_type_sel = 'custom';
+        input_bit_width = frac_width + exp_width;
+    else
+        float_type_sel = 'single';
+        exp_width = 8;
+        frac_width = 24;
+        input_bit_width = frac_width + exp_width;
+    end
+else
+    float_en = 'off';
+    exp_width = 8;
+    frac_width = 24;
+end
+
+
 %
 % Add some input and output ports.
 %
@@ -264,17 +283,17 @@ n_input_biplex = n_streams*2^(n_inputs-2);
 % Add a biplex block.
 
 
-if floating_point == 1
-    float_en = 'on';
-else
-    float_en = 'off';  
-end
-
-if float_type == 2
-    float_type_sel = 'custom';
-else
-    float_type_sel = 'single';
-end
+% if floating_point == 1
+%     float_en = 'on';
+% else
+%     float_en = 'off';  
+% end
+% 
+% if float_type == 2
+%     float_type_sel = 'custom';
+% else
+%     float_type_sel = 'single';
+% end
 
     
 reuse_block(blk, 'fft_biplex_real_4x', 'casper_library_ffts/fft_biplex_real_4x', ...
@@ -393,6 +412,10 @@ if strcmp(unscramble, 'on'),
     'n_inputs', num2str(n_inputs-1), ...
     'n_streams', num2str(n_streams), ...
     'n_bits_in', num2str(n_bits_final), ...
+    'floating_point', float_en, ...
+    'float_type', float_type_sel, ...
+    'exp_width', num2str(exp_width), ...
+    'frac_width', num2str(frac_width), ...    
     'coeffs_bit_limit', num2str(coeffs_bit_limit), ...
     'async', async, ...
     'bram_latency', num2str(bram_latency));

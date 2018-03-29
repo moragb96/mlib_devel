@@ -54,10 +54,6 @@ defaults = { ...
   'bram_latency', 1, ...
   'fanout_latency', 0, ...
   'n_inputs', 1, ...
-  'floating_point', 'off', ...
-  'float_type', 'single', ...
-  'exp_width', 8, ...
-  'frac_width', 24, ...    
   'double_buffer', 0, ...
   'software_controlled', 'off', ...
   'bram_map', 'on'};
@@ -72,10 +68,6 @@ map_latency     = get_var('map_latency', 'defaults', defaults, varargin{:});
 bram_latency    = get_var('bram_latency', 'defaults', defaults, varargin{:});
 fanout_latency  = get_var('fanout_latency', 'defaults', defaults, varargin{:});
 n_inputs        = get_var('n_inputs', 'defaults', defaults, varargin{:});
-floating_point  = get_var('floating_point', 'defaults', defaults, varargin{:});
-float_type      = get_var('float_type', 'defaults', defaults, varargin{:});
-exp_width       = get_var('exp_width', 'defaults', defaults, varargin{:});
-frac_width      = get_var('frac_width', 'defaults', defaults, varargin{:});
 double_buffer   = get_var('double_buffer', 'defaults', defaults, varargin{:});
 bram_map        = get_var('bram_map', 'defaults', defaults, varargin{:});
 software_controlled = get_var('software_controlled', 'defaults', defaults, varargin{:});
@@ -84,18 +76,6 @@ mux_latency     = 1;
 yinc = 20;
 
 delete_lines(blk);
-
-if floating_point == 1
-    float_en = 'on';
-else
-    float_en = 'off';  
-end
-
-if float_type == 2
-    float_type_sel = 'custom';
-else
-    float_type_sel = 'single';
-end
 
 if isempty(map),
   clean_blocks(blk);
@@ -262,46 +242,48 @@ if order == 1,
         add_line(blk, ['we_expand/',num2str(cnt)], ['delay_din_bram', num2str(cnt-1),'/2']);
     end %for
 % Case for order != 1, single-buffered
+
 elseif double_buffer == 0,
 
   % Add Dynamic Blocks and wires
   for cnt=1:n_inputs,
-      % BRAMS
-      bram_name = ['buf', num2str(cnt-1)];
-      % if we dont specify a valid bit width, use generic BRAMs
-      if n_bits == 0,
-        reuse_block(blk, bram_name, 'xbsIndex_r4/Single Port RAM', ...
-            'depth', num2str(2^map_bits), 'optimize', 'Speed', ...
-            'write_mode', 'Read Before Write', 'latency', num2str(bram_latency+fanout_latency), ...
-            'Position', [845    base+80*(cnt-1)-17+40   910   base+80*(cnt-1)+77]);
-      else, %otherwise use brams that help reduce fanout
-        m = floor(n_bits/64);
-        n_bits_in = ['[repmat(64, 1, ', num2str(m),')]'];
+          
+          % BRAMS
+          bram_name = ['buf', num2str(cnt-1)];
+          % if we dont specify a valid bit width, use generic BRAMs
+          if n_bits == 0,
+            reuse_block(blk, bram_name, 'xbsIndex_r4/Single Port RAM', ...
+                'depth', num2str(2^map_bits), 'optimize', 'Speed', ...
+                'write_mode', 'Read Before Write', 'latency', num2str(bram_latency+fanout_latency), ...
+                'Position', [845    base+80*(cnt-1)-17+40   910   base+80*(cnt-1)+77]);
+          else, %otherwise use brams that help reduce fanout
+            m = floor(n_bits/64);
+            n_bits_in = ['[repmat(64, 1, ', num2str(m),')]'];
 
-        if m ~= (n_bits/64), 
-          n = m+1;
-          n_bits_in = ['[', n_bits_in, ', ', num2str(n_bits - (m*64)),']'];
-        else,
-          n = m;
-        end
-        bin_pts = ['[zeros(1, ', num2str(n),')]'];
-        init_vector = ['[zeros(', num2str(2^map_bits), ',', num2str(n), ')]'];
+            if m ~= (n_bits/64), 
+              n = m+1;
+              n_bits_in = ['[', n_bits_in, ', ', num2str(n_bits - (m*64)),']'];
+            else,
+              n = m;
+            end
+            bin_pts = ['[zeros(1, ', num2str(n),')]'];
+            init_vector = ['[zeros(', num2str(2^map_bits), ',', num2str(n), ')]'];
 
-        reuse_block(blk, bram_name, 'casper_library_bus/bus_single_port_ram', ...
-          'n_bits', n_bits_in, 'bin_pts', bin_pts, 'init_vector', init_vector, ...
-          'max_fanout', '1', 'mem_type', 'Block RAM', 'bram_optimization', 'Speed', ...
-          'async', 'off', 'misc', 'off', ...
-          'bram_latency', num2str(bram_latency), 'fan_latency', num2str(fanout_latency), ...
-          'addr_register', 'on', 'addr_implementation', 'core', ...
-          'din_register', 'on', 'din_implementation', 'behavioral', ...
-          'we_register', 'on', 'we_implementation', 'core', ...
-          'en_register', 'off', 'en_implementation', 'behavioral', ...
-          'Position', [845    base+80*(cnt-1)-17+40   910   base+80*(cnt-1)+77]);
-      end
-      add_line(blk, ['we_expand/',num2str(cnt)], [bram_name,'/3']);
-      add_line(blk, ['addr_expand/',num2str(cnt)], [bram_name,'/1']);
-      add_line(blk, ['delay_din',num2str(cnt-1),'/1'], [bram_name,'/2']);
-      add_line(blk, [bram_name,'/1'], ['dout',num2str(cnt-1),'/1']);
+            reuse_block(blk, bram_name, 'casper_library_bus/bus_single_port_ram', ...
+              'n_bits', n_bits_in, 'bin_pts', bin_pts, 'init_vector', init_vector, ...
+              'max_fanout', '1', 'mem_type', 'Block RAM', 'bram_optimization', 'Speed', ...
+              'async', 'off', 'misc', 'off', ...
+              'bram_latency', num2str(bram_latency), 'fan_latency', num2str(fanout_latency), ...
+              'addr_register', 'on', 'addr_implementation', 'core', ...
+              'din_register', 'on', 'din_implementation', 'behavioral', ...
+              'we_register', 'on', 'we_implementation', 'core', ...
+              'en_register', 'off', 'en_implementation', 'behavioral', ...
+              'Position', [845    base+80*(cnt-1)-17+40   910   base+80*(cnt-1)+77]);
+          end
+          add_line(blk, ['we_expand/',num2str(cnt)], [bram_name,'/3']);
+          add_line(blk, ['addr_expand/',num2str(cnt)], [bram_name,'/1']);
+          add_line(blk, ['delay_din',num2str(cnt-1),'/1'], [bram_name,'/2']);
+          add_line(blk, [bram_name,'/1'], ['dout',num2str(cnt-1),'/1']);
   end
 
   %special case for order of 2 
