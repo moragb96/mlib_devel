@@ -85,32 +85,6 @@ function bus_mult_init(blk, varargin)
 
   delete_lines(blk);
 
-  %default state, do nothing 
-  if ((n_bits_a == 0 | n_bits_b == 0)&(~floating_point)),
-    clean_blocks(blk);
-    save_state(blk, 'defaults', defaults, varargin{:});  % Save and back-populate mask parameter values
-    clog('exiting bus_mult_init', {log_group, 'trace'});
-    return;
-  end
-
-  %%%%%%%%%%%%%%%%%%%%%%
-  % parameter checking %
-  %%%%%%%%%%%%%%%%%%%%%%
-
-  if max_fanout < 1,
-    clog('Maximum fanout must be 1 or greater', {'error', log_group});
-    error('Maximum fanout must be 1 or greater');
-  end
-
-  %need complex multiplication and will reduce fanout by two automatically
-  if strcmp(cmplx_a, 'on') && strcmp(cmplx_b, 'on'),   
-    dup_latency = fan_latency - 1;  
-    max_fanout = max_fanout*2;
-  else,
-    dup_latency = fan_latency;
-  end
-
-  
   % Check for floating point
   if floating_point == 1
       float_en = 'on';
@@ -144,12 +118,41 @@ function bus_mult_init(blk, varargin)
   end
   
   
+  %default state, do nothing 
+  if ((n_bits_a == 0 | n_bits_b == 0)&(~floating_point)),
+    clean_blocks(blk);
+    save_state(blk, 'defaults', defaults, varargin{:});  % Save and back-populate mask parameter values
+    clog('exiting bus_mult_init', {log_group, 'trace'});
+    return;
+  end
+
+  %%%%%%%%%%%%%%%%%%%%%%
+  % parameter checking %
+  %%%%%%%%%%%%%%%%%%%%%%
+
+  if max_fanout < 1,
+    clog('Maximum fanout must be 1 or greater', {'error', log_group});
+    error('Maximum fanout must be 1 or greater');
+  end
+
+  %need complex multiplication and will reduce fanout by two automatically
+  if strcmp(cmplx_a, 'on') && strcmp(cmplx_b, 'on'),   
+    dup_latency = fan_latency - 1;  
+    max_fanout = max_fanout*2;
+  else,
+    dup_latency = fan_latency;
+  end
+
+  
+
+  
+  
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   % check input lists for consistency %
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
  
   if floating_point
-      lenba = input_vec_a; lenpa = length(0); lenta = length(0);
+      lenba = length(n_bits_a); lenpa = length(0); lenta = length(0);
       a = [lenba, lenpa, lenta];  
       unique_a = unique(a);
       compa = unique_a(length(unique_a));

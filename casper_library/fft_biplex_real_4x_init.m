@@ -240,17 +240,20 @@ end
 % Add biplex_core block.
 %
 
-if floating_point == 1
-    float_en = 'on';
-else
-    float_en = 'off';  
-end
-
-if float_type == 2
-    float_type_sel = 'custom';
-else
-    float_type_sel = 'single';
-end
+  % Check if floating point is being used
+  if floating_point == 1
+      float_en = 'on';
+  else
+      float_en = 'off';  
+  end
+  
+  if float_type == 2
+      float_type_sel = 'custom';
+  else
+      float_type_sel = 'single';
+      exp_width = 8;
+      frac_width = 24;
+  end
 
 
 reuse_block(blk, 'biplex_core', 'casper_library_ffts/biplex_core', ...
@@ -303,6 +306,10 @@ reuse_block(blk, 'bi_real_unscr_4x', 'casper_library_ffts_internal/bi_real_unscr
     'FFTSize', num2str(FFTSize), ...
     'n_bits', num2str(n_bits_out), ...
     'bin_pt', num2str(bin_pt_in), ...
+    'floating_point', float_en, ...
+    'float_type', float_type_sel, ...
+    'exp_width', num2str(exp_width), ...
+    'frac_width', num2str(frac_width), ...        
     'add_latency', 'add_latency', ...
     'conv_latency', 'conv_latency', ...
     'bram_latency', 'bram_latency', ...
