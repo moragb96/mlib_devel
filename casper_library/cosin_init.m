@@ -290,7 +290,7 @@ function cosin_init_cfloat(blk,varargin)
     add_line(blk,'add_convert0/2','lookup/1');
     add_line(blk,'add_convert1/2','lookup/4');
     
-    if floating_point
+    if floating_point == 1
         %constant inputs to lookup table    
         
         switch float_type_sel
@@ -338,7 +338,7 @@ function cosin_init_cfloat(blk,varargin)
 
     %add constants if using BRAM (ports don't exist when using distributed RAM)
     if strcmp(bram, 'BRAM')
-            if floating_point
+            if floating_point == 1
                 
                 switch float_type_sel
                     case 'single'
@@ -448,7 +448,7 @@ function cosin_init_cfloat(blk,varargin)
   
   add_line(blk,'Constant5/1','invert0/3');
   
-  if floating_point
+  if floating_point == 1
         reuse_block(blk, 'convert0', 'xbsIndex_r4/Convert', ...
           'arith_type', 'Floating-Point', ...
           'float_type', 'Custom', ...
@@ -469,7 +469,7 @@ function cosin_init_cfloat(blk,varargin)
           'Position', [800 160 850 222]);
       
       
-  if floating_point
+  if floating_point == 1
         reuse_block(blk, 'Delay9', 'xbsIndex_r4/Delay', ...
           'latency', 'conv_latency', ...
           'reg_retiming', 'on', ...
@@ -482,7 +482,7 @@ function cosin_init_cfloat(blk,varargin)
   end
       
 
-  if floating_point
+  if floating_point == 1
         reuse_block(blk, 'convert1', 'xbsIndex_r4/Convert', ...
           'arith_type', 'Floating-Point', ...
           'exp_bits', num2str(exp_width), ...
@@ -535,7 +535,7 @@ function cosin_init_cfloat(blk,varargin)
   
 
   
-  if floating_point
+  if floating_point == 1
         reuse_block(blk, 'Delay1', 'xbsIndex_r4/Delay', ...
           'latency', 'conv_latency', ...
           'reg_retiming', 'on', ...
