@@ -329,9 +329,16 @@ end
 % Add mux blocks.
 %
 
-if strcmp(async, 'on'), latency = 'add_latency + conv_latency + 1 + 1';
-else, latency = 'add_latency + conv_latency + 1';
+if floating_point
+    if strcmp(async, 'on'), latency = 'add_latency + 1 + 1';
+    else, latency = 'add_latency + conv_latency + 1';
+    end
+else
+    if strcmp(async, 'on'), latency = 'add_latency + conv_latency + 1 + 1';
+    else, latency = 'add_latency + conv_latency + 1';
+    end    
 end
+
 
 reuse_block(blk, 'd2', 'xbsIndex_r4/Delay', ...
     'Position', [470 77 675 93], ...
