@@ -96,6 +96,12 @@ function cmult_init(blk, varargin)
 
   delete_lines(blk);
   
+  % sanity check for old block that has not been updated for floating point
+  if strcmp(floating_point, 'on')
+    floating_point = 1;
+  else
+    floating_point = 0;
+  end
   
   if floating_point
       preci_type = 'Full';
