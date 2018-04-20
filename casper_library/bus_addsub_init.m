@@ -29,7 +29,7 @@ function bus_addsub_init(blk, varargin)
     'n_bits_a', [8] ,  'bin_pt_a',     [3],   'type_a',   1, ...
     'n_bits_b', [4 ]  ,  'bin_pt_b',     [3],   'type_b',   [1], ...
     'n_bits_out', 8 ,     'bin_pt_out',   [3],   'type_out', [1], ...
-    'floating_point', 'off', 'float_type', 'single', 'exp_width', 6, 'frac_width', 25, ...  
+    'floating_point', 'off', 'float_type', 'single', 'exp_width', 6, 'frac_width', 19, ...  
     'overflow', [1], 'quantization', [0], 'add_implementation', 'fabric core', ...
     'latency', 1, 'async', 'off', 'cmplx', 'on', 'misc', 'on'
   };  
@@ -71,7 +71,35 @@ function bus_addsub_init(blk, varargin)
   async        = get_var('async', 'defaults', defaults, varargin{:});
  
   delete_lines(blk);
+  
+  % sanity check for old block that has not been updated for floating point
+  if (strcmp(floating_point, 'on')|floating_point == 1)
+    floating_point = 1;
+  else
+    floating_point = 0;
+  end
+  
+    % Check for floating point
+  if floating_point
+      float_en = 'on';
+      
+      if float_type == 2
+          float_type_sel = 'custom';
 
+      else
+          float_type_sel = 'single';
+      end
+  else
+      float_en = 'off';  
+      float_type_sel = 'single';
+      exp_width = 8;
+      frac_width = 24;
+  end
+  
+  
+  
+  
+  
   % Check if floating point is selected. If so, set the bit widths
   % accordingly. Note: A reinterpret block follows the 
   if floating_point

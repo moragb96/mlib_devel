@@ -69,10 +69,7 @@ function cmult_init(blk, varargin)
   if same_state(blk, 'defaults', defaults, varargin{:}), return, end
 
   munge_block(blk,varargin);
-
-  
-
-  
+    
   n_bits_a                  = get_var('n_bits_a','defaults',defaults,varargin{:});
   n_bits_b                  = get_var('n_bits_b','defaults',defaults,varargin{:});
   n_bits_ab                 = get_var('n_bits_ab','defaults',defaults,varargin{:});
@@ -152,10 +149,6 @@ function cmult_init(blk, varargin)
   end  
   
   
-  
-
-
-
   %ports
 
   reuse_block(blk, 'a', 'built-in/Inport', 'Port', '1', 'Position', [5 148 35 162]);
@@ -391,20 +384,41 @@ function cmult_init(blk, varargin)
     add_line(blk, 'en_replicate1/1', 'en_expand1/1'); 
   end
 
-  %add/subs
-  reuse_block(blk, 'addsub_re', 'xbsIndex_r4/AddSub', ...
-    'en', async, 'use_behavioral_HDL', 'on', 'pipelined', 'on', ...
-    'latency', num2str(add_latency), 'use_rpm', 'on', 'precision', 'Full', ...
-    'Position', [445 94 495 236]);
-  add_line(blk, 'rere/1', 'addsub_re/1');
-  add_line(blk, 'imim/1', 'addsub_re/2');
+  if strcmp(use_embedded,'on')
+      %add/subs
+      reuse_block(blk, 'addsub_re', 'xbsIndex_r4/AddSub', ...
+        'en', async, 'use_behavioral_HDL', 'off', 'pipelined', 'on', ...
+        'hw_selection','DSP48',...
+        'latency', num2str(add_latency), 'use_rpm', 'on', 'precision', 'Full', ...
+        'Position', [445 94 495 236]);
+      add_line(blk, 'rere/1', 'addsub_re/1');
+      add_line(blk, 'imim/1', 'addsub_re/2');
 
-  reuse_block(blk, 'addsub_im', 'xbsIndex_r4/AddSub', ...
-    'en', async, 'use_behavioral_HDL', 'on', 'pipelined', 'on', ...
-    'latency', num2str(add_latency), 'use_rpm', 'on', 'precision', 'Full', ...
-    'Position', [445 259 495 401]);
-  add_line(blk, 'imre/1', 'addsub_im/1');
-  add_line(blk, 'reim/1', 'addsub_im/2');
+      reuse_block(blk, 'addsub_im', 'xbsIndex_r4/AddSub', ...
+        'en', async, 'use_behavioral_HDL', 'off', 'pipelined', 'on', ...
+        'hw_selection','DSP48',...
+        'latency', num2str(add_latency), 'use_rpm', 'on', 'precision', 'Full', ...
+        'Position', [445 259 495 401]);
+      add_line(blk, 'imre/1', 'addsub_im/1');
+      add_line(blk, 'reim/1', 'addsub_im/2');      
+     
+  else
+      %add/subs
+      reuse_block(blk, 'addsub_re', 'xbsIndex_r4/AddSub', ...
+        'en', async, 'use_behavioral_HDL', 'on', 'pipelined', 'on', ...
+        'latency', num2str(add_latency), 'use_rpm', 'on', 'precision', 'Full', ...
+        'Position', [445 94 495 236]);
+      add_line(blk, 'rere/1', 'addsub_re/1');
+      add_line(blk, 'imim/1', 'addsub_re/2');
+
+      reuse_block(blk, 'addsub_im', 'xbsIndex_r4/AddSub', ...
+        'en', async, 'use_behavioral_HDL', 'on', 'pipelined', 'on', ...
+        'latency', num2str(add_latency), 'use_rpm', 'on', 'precision', 'Full', ...
+        'Position', [445 259 495 401]);
+      add_line(blk, 'imre/1', 'addsub_im/1');
+      add_line(blk, 'reim/1', 'addsub_im/2');      
+  end
+
 
   % Set conjugation mode.
   if strcmp(conjugated, 'on')
