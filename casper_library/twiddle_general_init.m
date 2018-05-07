@@ -197,6 +197,8 @@ end
 
 if floating_point
     
+    multiplier_implementation = 'embedded multiplier core';
+    
     %multipliers
     reuse_block(blk, 'bus_mult', 'casper_library_bus/bus_mult', ...
         'n_bits_a', 'coeff_bit_width', ...
