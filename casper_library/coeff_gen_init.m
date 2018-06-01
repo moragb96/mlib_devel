@@ -98,6 +98,7 @@ function coeff_gen_init(blk, varargin)
           coeff_bit_width = exp_width + frac_width;
       end
   else
+      float_type_sel = 'single';
       exp_width = 8;
       frac_width = 24;
   end
