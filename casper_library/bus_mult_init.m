@@ -90,16 +90,16 @@ function bus_mult_init(blk, varargin)
   delete_lines(blk);
 
   % sanity check for old block that has not been updated for floating point
-  if (strcmp(floating_point, 'on')||floating_point == 1)
+  if (strcmp(floating_point, 'on')|floating_point == 1)
     floating_point = 1;
   else
     floating_point = 0;
   end
       
-  if (strcmp(floating_point, 'on'))||(pipeline_cmult_en == 1)
+  if (strcmp(pipeline_cmult_en, 'on'))|(pipeline_cmult_en == 1)
     pipeline_cmult_en = 'on';
   else
-    pipeline_cmult_en = 'off';
+    pipeline_cmult_en = 'off'; 
   end
   
   % Check for floating point
