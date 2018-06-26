@@ -79,6 +79,8 @@ function butterfly_direct_init(blk, varargin)
       'mult_latency', 2, ...
       'bram_latency', 2, ...
       'conv_latency', 1, ...
+      'add_pipe_latency', 0, ...
+      'mult_pipe_latency', 0, ...        
       'quantization', 'Truncate', ...
       'overflow', 'Wrap', ...
       'coeffs_bit_limit', 8, ...
@@ -125,6 +127,8 @@ function butterfly_direct_init(blk, varargin)
   add_latency       = get_var('add_latency', 'defaults', defaults, varargin{:});
   mult_latency      = get_var('mult_latency', 'defaults', defaults, varargin{:});
   conv_latency      = get_var('conv_latency', 'defaults', defaults, varargin{:});
+  add_pipe_latency  = get_var('add_pipe_latency', 'defaults', defaults, varargin{:});
+  mult_pipe_latency = get_var('mult_pipe_latency', 'defaults', defaults, varargin{:});  
   quantization      = get_var('quantization', 'defaults', defaults, varargin{:});
   overflow          = get_var('overflow', 'defaults', defaults, varargin{:});
   coeffs_bit_limit  = get_var('coeffs_bit_limit', 'defaults', defaults, varargin{:});
@@ -149,6 +153,12 @@ function butterfly_direct_init(blk, varargin)
     return;
   end
 
+  if add_pipe_latency > 0
+    pipeline_add_en = 'on';
+  else
+    pipeline_add_en = 'off';      
+  end
+  
   % Check if floating point is being used
   if floating_point == 1
       float_en = 'on';
@@ -164,7 +174,6 @@ function butterfly_direct_init(blk, varargin)
       frac_width = 24;
   end
 
-  
   
   % bin_pt_in == -1 is a special case for backwards compatibility
   if bin_pt_in == -1
@@ -364,6 +373,8 @@ function butterfly_direct_init(blk, varargin)
           'bin_pt_out', num2str(addsub_b_binpoint), 'type_out', '1', ...
           'quantization', '0', 'overflow', '0', ...
           'add_implementation', add_implementation, ...
+          'pipeline_en', pipeline_add_en, ...
+          'pipeline_latency', num2str(add_pipe_latency),...
           'Position', [270 64 310 91]);
   add_line(blk, 'twiddle/1', 'bus_add/1');
   add_line(blk, 'twiddle/2', 'bus_add/2');
@@ -383,6 +394,8 @@ function butterfly_direct_init(blk, varargin)
           'bin_pt_out', num2str(addsub_b_binpoint), 'type_out', '1', ...
           'quantization', '0', 'overflow', '0', ...
           'add_implementation', add_implementation, ...
+          'pipeline_en', pipeline_add_en, ...
+          'pipeline_latency', num2str(add_pipe_latency),...
           'Position', [270 109 310 136]);
   add_line(blk, 'twiddle/1', 'bus_sub/1');
   add_line(blk, 'twiddle/2', 'bus_sub/2');
@@ -441,29 +454,52 @@ function butterfly_direct_init(blk, varargin)
       %
       % sync delay.
       %
-
-      reuse_block(blk, 'delay0', 'xbsIndex_r4/Delay');
-      set_param([blk,'/delay0'], ...
-              'latency', ['add_latency'], ...
-              'reg_retiming', 'on', ...
-              'Position', [580 179 610 201]);
-      add_line(blk, 'twiddle/3', 'delay0/1');  
-      add_line(blk, 'delay0/1', 'sync_out/1');  
+      if strcmp(pipeline_add_en,'on')
+          reuse_block(blk, 'delay0', 'xbsIndex_r4/Delay');
+          set_param([blk,'/delay0'], ...
+                  'latency', ['add_latency+add_pipe_latency+add_pipe_latency'], ...
+                  'reg_retiming', 'on', ...
+                  'Position', [580 179 610 201]);
+          add_line(blk, 'twiddle/3', 'delay0/1');  
+          add_line(blk, 'delay0/1', 'sync_out/1');            
+      
+      else
+          reuse_block(blk, 'delay0', 'xbsIndex_r4/Delay');
+          set_param([blk,'/delay0'], ...
+                  'latency', ['add_latency'], ...
+                  'reg_retiming', 'on', ...
+                  'Position', [580 179 610 201]);
+          add_line(blk, 'twiddle/3', 'delay0/1');  
+          add_line(blk, 'delay0/1', 'sync_out/1');            
+      end
       
       
       %
       % dvalid delay.
       %
-
-      if strcmp(async, 'on'),
-        add_line(blk, 'en/1', 'twiddle/4');
-        reuse_block(blk, 'delay1', 'xbsIndex_r4/Delay', ...
-              'latency', ['add_latency'], ...
-              'reg_retiming', 'on', ...
-              'Position', [580 239 610 261]);
-        add_line(blk, 'twiddle/4', 'delay1/1');  
-        add_line(blk, 'delay1/1', 'dvalid/1');  
+      if strcmp(pipeline_add_en,'on')
+          if strcmp(async, 'on'),
+            add_line(blk, 'en/1', 'twiddle/4');
+            reuse_block(blk, 'delay1', 'xbsIndex_r4/Delay', ...
+                  'latency', ['add_latency+add_pipe_latency+add_pipe_latency'], ...
+                  'reg_retiming', 'on', ...
+                  'Position', [580 239 610 261]);
+            add_line(blk, 'twiddle/4', 'delay1/1');  
+            add_line(blk, 'delay1/1', 'dvalid/1');  
+          end    
+      else
+          if strcmp(async, 'on'),
+            add_line(blk, 'en/1', 'twiddle/4');
+            reuse_block(blk, 'delay1', 'xbsIndex_r4/Delay', ...
+                  'latency', ['add_latency'], ...
+                  'reg_retiming', 'on', ...
+                  'Position', [580 239 610 261]);
+            add_line(blk, 'twiddle/4', 'delay1/1');  
+            add_line(blk, 'delay1/1', 'dvalid/1');  
+          end
       end
+      
+
       
   else
       %
