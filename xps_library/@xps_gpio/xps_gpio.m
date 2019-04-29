@@ -44,7 +44,7 @@ s.termtype = get_param(blk_name,'termination');
 s.single_ended = get_param(blk_name,'use_single_ended');
 b = class(s,'xps_gpio',blk_obj);
 
-use_diffio = ~isempty(strmatch(s.io_group, {'zdok0', 'zdok1', 'mdr', 'qsh'})) & strcmp(s.single_ended, 'off');
+use_diffio = ~isempty(strmatch(s.io_group, {'zdok0', 'zdok1', 'mdr', 'qsh', 'sync_in', 'sync_out'})) & strcmp(s.single_ended, 'off');
 
 if ~isempty(strmatch(s.termtype, {'Pullup', 'Pulldown'}))
     termination = s.termtype;
@@ -73,39 +73,6 @@ end
 % external ports
 
 switch s.hw_sys
-    case 'BEE2_usr'
-        switch s.io_group
-            case 'leftlink'
-                iostandard = 'LVCMOS25';
-            case 'rightlink'
-                iostandard = 'LVCMOS25';
-            case 'uplink'
-                iostandard = 'LVCMOS25';
-            otherwise
-                iostandard = 'LVCMOS18';
-        end
-    % end case 'BEE2_usr'
-    case 'BEE2_ctrl'
-        switch s.io_group
-            case 'downlink1'
-                iostandard = 'LVCMOS25';
-            case 'downlink2'
-                iostandard = 'LVCMOS25';
-            case 'downlink3'
-                iostandard = 'LVCMOS25';
-            case 'downlink4'
-                iostandard = 'LVCMOS25';
-            otherwise
-                iostandard = 'LVCMOS18';
-        end
-    % end case 'BEE2_ctrl'
-    case 'iBOB'
-        if use_diffio
-            iostandard = 'LVDS_25';
-        else
-            iostandard = 'LVCMOS25';
-        end
-    % end case 'iBOB'
     case 'ROACH'
         if use_diffio
             iostandard = 'LVDS_25';
@@ -124,6 +91,13 @@ switch s.hw_sys
             end               
         end % if use_diffio
     % end case 'ROACH'
+    case 'ROACH2'
+        if use_diffio
+            iostandard = 'LVDS_25';
+        else
+            iostandard = 'LVCMOS15';
+        end % if use_diffio
+    % end case 'ROACH2'
     otherwise
         iostandard = 'LVCMOS25';
 end % switch 'hw_sys'

@@ -20,16 +20,36 @@
 %                                                                             %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function remove_all_blks(sys)
-blks = get_param(sys,'blocks');
-lines = get_param(sys,'lines');
-for i = 1:length(blks)
-    switch get_param([sys,'/',blks{i}],'BlockType')
-        case {'Inport' 'Outport'}
-        otherwise
-            delete_block([sys,'/',blks{i}]);
+function remove_all_blks(sys, varargin)
+
+% if an argument is given after the system name, do not dump and rethrow
+% on an exception, just rethrow the exception.
+if isempty(varargin),
+    dump = 1;
+else
+    dump = 0;
+end
+
+% Wrap whole function in try/catch
+try
+
+  blks = get_param(sys,'blocks');
+  lines = get_param(sys,'lines');
+  for i = 1:length(blks)
+      switch get_param([sys,'/',blks{i}],'BlockType')
+          case {'Inport' 'Outport'}
+              % don't remove IO blocks
+          otherwise
+              delete_block([sys,'/',blks{i}]);
+      end
+  end
+  for i = 1:length(lines)
+      delete_line(lines(i).Handle);
+  end
+catch ex
+    if dump,
+        dump_and_rethrow(ex)
+    else
+        rethrow(ex)
     end
-end
-for i = 1:length(lines)
-    delete_line(lines(i).Handle);
-end
+end % try/catch

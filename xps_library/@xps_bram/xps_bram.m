@@ -30,8 +30,34 @@ end
 
 blk_name = get(blk_obj,'simulink_name');
 s.hw_sys = 'any';
-s.addr_width = eval_param(blk_name,'addr_width');
-s.data_width = eval_param(blk_name,'data_width');
+s.addr_width      = eval_param(blk_name,'addr_width');
+s.data_width      = str2num(get_param(blk_name,'data_width'));
+
+% Set s.optimation to default value, then try to set it
+% from block parameters.  Old blocks may not have this parameter.
+s.optimization = 'Minimum_Area';
+try
+  s.optimization    = get_param(blk_name,'optimization');
+catch
+  % Issue warning that use might want to update links
+  warning('Shared BRAM block "%s" is out of date (needs its link restored)', blk_name);
+end
+
+% Old blocks may not have this parameter, start with default value.
+s.reg_core_output = 'false';
+try
+  if strcmpi(get_param(blk_name,'reg_core_output'), 'on')
+     s.reg_core_output = 'true';
+  end
+end
+
+% Old blocks may not have this parameter, start with default value.
+s.reg_prim_output = 'false';
+try
+  if strcmpi(get_param(blk_name,'reg_prim_output'), 'on')
+     s.reg_prim_output = 'true';
+  end
+end
 
 b = class(s,'xps_bram',blk_obj);
 
@@ -42,12 +68,15 @@ b = set(b,'ip_name','bram_if');
 b = set(b,'soft_driver',{'bram' '1.00.a'});
 
 % address offset
-b = set(b,'opb_address_offset',4*2^s.addr_width);
+b = set(b,'opb_address_offset',s.data_width/8*(2^s.addr_width));
+
+% address alignment 
+b = set(b,'opb_address_align',(32/8) * 2^(s.addr_width+log2(s.data_width/32)));
 
 % software parameters
-b = set(b,'c_params',num2str(2^s.addr_width));
+b = set(b,'c_params',num2str((2^s.addr_width)*s.data_width/32));
 
 % borf parameters
-borph_info.size = 4*2^s.addr_width;
+borph_info.size = (2^s.addr_width)*s.data_width/8;
 borph_info.mode = 3;
 b = set(b,'borph_info',borph_info);

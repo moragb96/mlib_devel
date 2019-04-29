@@ -22,9 +22,11 @@
 
 cursys = gcb;
 
+warning('gpio yellow block I/O is unconstrained (set to false path).');
+
 [hw_sys,io_group] = xps_get_hw_info(get_param(gcb,'io_group'));
-if ~exist(hw_sys) | ~isstruct(hw_sys)
-    load BEE2_hw_routes.mat;
+if ~exist(hw_sys) || ~isstruct(hw_sys)
+    load_hw_routes();
 end
 
 try
@@ -43,7 +45,7 @@ else
 	real_bitwidth = bitwidth;
 end
 
-if ~isempty(find(bit_index>=length(pads)))
+if ~isempty(find(bit_index>=length(pads), 1))
     errordlg('Gateway bit index contain values that exceeds the bitwidth');
 end
 
@@ -62,7 +64,7 @@ else
 	    errordlg('Gateway bitwidth is larger than the number of available pads');
 	end
     if length(bit_index) ~= real_bitwidth
-        errordlg('Gateway bit index does not have the same number of elements as the I/O bitwidth');
+        errordlg('Gateway bit index does not have the same number of elements as the I/O bitwidth. When using bitwidths greater than one, you should specify a vector of bit indices to use.');
     end
 end
 
@@ -70,7 +72,20 @@ pos = get_param(cursys,'Position');
 x= pos(1);
 y= pos(2);
 
-remove_all_blks(cursys);
+try
+  remove_all_blks(cursys);
+catch ex
+  % If remove_all_blks throws a CallbackDelete exception (more specifically a
+  % Simulink:Engine:CallbackDelete exception), then we're in a callback of some
+  % sort so we shouldn't be removing blocks or redrawing things anyway so just
+  % return.
+  if regexp(ex.identifier, 'CallbackDelete')
+    return
+  end
+  % Otherwise it's perhaps a legitamite exception so dump and rethrow it.
+  dump_and_rethrow(ex);
+end
+
 old_ports = ports_struct(get_param(cursys,'blocks'));
 
 switch get_param(cursys,'io_dir')
@@ -84,8 +99,8 @@ switch get_param(cursys,'io_dir')
             'bin_pt', num2str(bin_pt),...
             'period','sample_period');
 
-        add_line(cursys,['sim_in/1'],[gw_name,'/1']);
-        add_line(cursys,[gw_name,'/1'],['gpio_in/1']);
+        add_line(cursys, 'sim_in/1', [gw_name, '/1']);
+        add_line(cursys, [gw_name,'/1'], 'gpio_in/1');
 
     case 'out'
         gw_name = [clear_name(gcb),'_gateway'];
@@ -96,13 +111,12 @@ switch get_param(cursys,'io_dir')
             'arith_type', get_param(cursys,'arith_type'),...
             'n_bits', num2str(bitwidth),...
             'bin_pt', num2str(bin_pt));
-        add_line(cursys,['gpio_out/1'],['convert/1']);
-        add_line(cursys,['convert/1'],[gw_name,'/1']);
-        add_line(cursys,[gw_name,'/1'],['sim_out/1']);
+        add_line(cursys, 'gpio_out/1', 'convert/1');
+        add_line(cursys, 'convert/1', [gw_name,'/1']);
+        add_line(cursys, [gw_name,'/1'], 'sim_out/1');
 
     otherwise
         errordlg(['Unsupported I/O direction: ',get_param(cursys,'io_dir')]);
 end
 
 clean_ports(cursys,old_ports);
-set_param(cursys,'Position', [x y x+100 y+30]);

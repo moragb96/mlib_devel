@@ -42,9 +42,19 @@ s.use_sniffer = num2str(strcmp(get_param(blk_name, 'use_sniffer'), 'on'));
 
 switch s.hw_sys
     case 'ROACH'
+        s.addr_width = '22';
+        s.data_width = '18';
+        s.bw_width = '2';
     % end case 'ROACH'
+    case 'ROACH2'
+        s.addr_width = '21';
+        s.data_width = '36';
+        s.bw_width = '4';
+    % end case 'ROACH2'
     otherwise
         error(['Unsupported hardware system: ',s.hw_sys]);
 end % end switch s.hw_sys
 
 b = class(s,'xps_qdr',blk_obj);
+
+b = set(b, 'opb0_devices', 2); %sniffer and controller

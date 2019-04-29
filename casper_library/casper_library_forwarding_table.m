@@ -1,5 +1,6 @@
-function clft = casper_library_forwarding_table
-% Returns a forwarding table suitable for use with casper_library.mdl.
+function out = casper_library_forwarding_table(varargin)
+% With no input arguments, this function returns a forwarding table suitable
+% for use with casper_library.mdl.
 % 
 % This script is intended to make it easier to rearrange the casper_library
 % library.  "clft" is a cell array of two-element cell arrays, each of
@@ -15,7 +16,15 @@ function clft = casper_library_forwarding_table
 %
 % Don't forget to unlock casper_library beforehand!
 % Don't forget to save casper_library afterwards!
+%
+% With a single argument, look it up in the forwarding table contained in this
+% script (but not necessarily in caser_library.mdl if it's gotten out of
+% sync...).  If found, return the new name; if not found, return the given name
+% unchanged.
 
+% Create forwarding table just one time
+persistent clft;
+if isempty(clft)
 clft = ...
 { ...
 {'casper_library/Accumulators/dram_vacc';'casper_library_accumulators/dram_vacc'}, ...
@@ -143,7 +152,23 @@ clft = ...
 {'casper_library/Sources/White Gaussian Noise';'casper_library_sources/White Gaussian Noise'}, ...
 {'casper_library/Sources/tt800_uprng';'casper_library_sources/tt800_uprng'}, ...
 {'casper_library/Sources/u2n';'casper_library_sources/u2n'}, ...
+% {'xps_library/Shared_BRAM';'xps_library/shared_bram'}, ...
+% {'xps_library/Shared BRAM';'xps_library/shared_bram'}, ...
+% {'xps_library/software register';'xps_library/software_register'}, ...
+% {'xps_library/XSG_core_config';'xps_library/xsg_core_config'}, ...
 };
+end % ifempty(clft)
+
+if nargin == 0
+  out = clft;
+else
+  out = varargin{1};
+  for k = 1:length(clft)
+    if strcmp(clft{k}{1}, out)
+      out = clft{k}{2};
+      break;
+    end
+  end
+end
 
 end
-    

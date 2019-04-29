@@ -20,11 +20,10 @@
 %                                                                             %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function [str,opb_addr_end,plb_addr_end,opb_addr_start] = gen_mhs_ip(blk_obj,opb_addr_start,plb_addr_start,plb_name,opb_name)
+function [str, opb_addr_end, opb_addr_start] = gen_mhs_ip(blk_obj, opb_addr_start, opb_name)
 
 str = '';
 opb_addr_end = opb_addr_start;
-plb_addr_end = plb_addr_start;
 
 try
 	ip_name = blk_obj.ip_name;
@@ -75,20 +74,9 @@ catch
 end
 
 try
-    plb_clk = blk_obj.plb_clk;
-catch
-    plb_clk = '';
-end
-
-try
 	range_opb = blk_obj.opb_address_offset;
 catch
 	range_opb = 0;
-end
-try
-	range_plb = blk_obj.plb_address_offset;
-catch
-	range_plb = 0;
 end
 
 try
@@ -97,91 +85,58 @@ catch
     align_opb = 0;
 end
 
-try
-    align_plb = blk_obj.plb_address_align;
-catch
-    align_plb = 0;
-end
-
-
 if ~isempty(ip_name)
-	str = [str, 'BEGIN ', get(blk_obj, 'ip_name'),'\n'];
-	str = [str, ' PARAMETER INSTANCE = ',clear_name(get(blk_obj,'simulink_name')),'\n'];
+	str = [str, 'BEGIN ', get(blk_obj, 'ip_name'), '\n'];
+	str = [str, ' PARAMETER INSTANCE = ', clear_name(get(blk_obj, 'simulink_name')), '\n'];
 
     if isempty(ip_version)
     	str = [str, ' PARAMETER HW_VER = 1.00.a\n'];
     else
-    	str = [str, ' PARAMETER HW_VER = ',ip_version,'\n'];
+    	str = [str, ' PARAMETER HW_VER = ', ip_version, '\n'];
     end % if is empty(ip_version)
 
     if isempty(opb_clk)
         opb_clk = 'sys_clk';
     end % if isempty(opb_clk)
 
-    if isempty(plb_clk)
-        plb_clk = 'sys_clk';
-    end % if isempty(plb_clk)
-
 	if ~isempty(parameters)
 		prop_names = fieldnames(parameters);
-
 		for n = 1:length(prop_names)
-		    cur_prop = getfield(parameters,prop_names{n});
-		    str = [str, ' PARAMETER ',prop_names{n},' = ',cur_prop,'\n'];
+		    cur_prop = getfield(parameters, prop_names{n});
+		    str = [str, ' PARAMETER ', prop_names{n}, ' = ', cur_prop, '\n'];
 		end % for n = 1:length(prop_names)
 	end % if ~isempty(parameters)
 
 	if range_opb ~= 0
-		if range_plb ~= 0
-			error('The default gen_mhs_ip does not support multiple bus attachments. You should write your own gen_mhs_ip for this interface.');
-		end % if range_plb ~= 0
-
 		if align_opb ~= 0
 			opb_addr_start = ceil(opb_addr_start/align_opb) * align_opb;
 		end % if align_opb ~= 0
 
 		opb_addr_end = opb_addr_start + range_opb;
 
-		str = [str, ' PARAMETER C_BASEADDR = 0x',dec2hex(opb_addr_start, 8),'\n'];
-		str = [str, ' PARAMETER C_HIGHADDR = 0x',dec2hex(opb_addr_end-1, 8),'\n'];
-		str = [str, ' BUS_INTERFACE SOPB = ',opb_name,'\n'];
+		str = [str, ' PARAMETER C_BASEADDR = 0x', dec2hex(opb_addr_start, 8), '\n'];
+		str = [str, ' PARAMETER C_HIGHADDR = 0x', dec2hex(opb_addr_end-1, 8), '\n'];
+		str = [str, ' BUS_INTERFACE SOPB = ', opb_name, '\n'];
 		str = [str, ' PORT OPB_Clk = ', opb_clk, '\n'];
 
 	end % if range_opb ~= 0
-
-	if range_plb ~= 0
-		if range_opb ~= 0
-			error('The default gen_mhs_ip does not support multiple bus attachments. You should write your own gen_mhs_ip for this interface.');
-		end % if range_opb ~= 0
-
-		if align_plb ~= 0
-			plb_addr_start = ceil(plb_addr_start/align_plb) * align_plb;
-		end % if align_plb ~= 0
-
-	    plb_addr_end = plb_addr_start + range_plb;
-
-	    str = [str, ' PARAMETER C_BASEADDR = 0x',dec2hex(plb_addr_start, 8),'\n'];
-	    str = [str, ' PARAMETER C_HIGHADDR = 0x',dec2hex(plb_addr_end-1, 8),'\n'];
-	    str = [str, ' BUS_INTERFACE SPLB = ',plb_name,'\n'];
-	    str = [str, ' PORT PLB_Clk = ', plb_clk, '\n'];
-
-    end % if range_plb ~=0
+    
+    clog([get(blk_obj, 'simulink_name'), ': align (0x', dec2hex(align_opb, 8), ') range (0x', dec2hex(range_opb, 8), ') (0x', dec2hex(opb_addr_start, 8), '-0x', dec2hex(opb_addr_end-1, 8), ')'], {'gen_mhs_ip_debug'});
 
 	if ~isempty(interfaces)
 		interfaces_names = fieldnames(interfaces);
 
 		for n = 1:length(interfaces_names)
-		    cur_interface = getfield(interfaces,interfaces_names{n});
-		    str = [str, ' BUS_INTERFACE ',interfaces_names{n},' = ',cur_interface,'\n'];
+		    cur_interface = getfield(interfaces, interfaces_names{n});
+		    str = [str, ' BUS_INTERFACE ', interfaces_names{n}, ' = ', cur_interface, '\n'];
 		end % for n = 1:length(interfaces_names)
     end % if ~isempty(interfaces)
 
 	if ~isempty(ports)
 		port_names = fieldnames(ports);
-
 		for n = 1:length(port_names)
-		    cur_port = getfield(ports,port_names{n});
-		    str = [str, ' PORT ',cur_port{3},' = ',port_names{n},'\n'];
+		    cur_port = getfield(ports, port_names{n});
+		    str = [str, ' PORT ', cur_port{3}, ' = ', port_names{n}, '\n'];
 		end
 	end % if ~isempty(ports)
 
@@ -189,12 +144,12 @@ if ~isempty(ip_name)
 		ext_port_names = fieldnames(ext_ports);
 
 		for n = 1:length(ext_port_names)
-		    cur_ext_port = getfield(ext_ports,ext_port_names{n});
+		    cur_ext_port = getfield(ext_ports, ext_port_names{n});
 		    if cur_ext_port{1} == 1
-		        str = [str, ' PORT ',ext_port_names{n},' = ',cur_ext_port{3},'\n'];
-		    else
-		        str = [str, ' PORT ',ext_port_names{n},' = ',cur_ext_port{3},'\n'];
-		    end % if cur_ext_port{1} == 1
+		        str = [str, ' PORT ', ext_port_names{n}, ' = ', cur_ext_port{3}, '\n'];
+            else
+                str = [str, ' PORT ', ext_port_names{n}, ' = ', cur_ext_port{3}, '\n'];
+            end % if cur_ext_port{1} == 1
 		end % for n = 1:length(ext_port_names)
 	end % if ~isempty(ext_ports)
 
@@ -202,11 +157,11 @@ if ~isempty(ip_name)
 		misc_port_names = fieldnames(misc_ports);
 
 		for n = 1:length(misc_port_names)
-		    cur_misc_port = getfield(misc_ports,misc_port_names{n});
-		    if cur_misc_port{1} == 1
-		        str = [str, ' PORT ',misc_port_names{n},' = ',cur_misc_port{3},'\n'];
-		    else
-		        str = [str, ' PORT ',misc_port_names{n},' = ',cur_misc_port{3},'\n'];
+            cur_misc_port = getfield(misc_ports, misc_port_names{n});
+            if cur_misc_port{1} == 1
+                str = [str, ' PORT ', misc_port_names{n}, ' = ', cur_misc_port{3}, '\n'];
+            else
+                str = [str, ' PORT ', misc_port_names{n}, ' = ', cur_misc_port{3}, '\n'];
 		    end % if cur_misc_port{1} == 1
 		end % for n = 1:length(misc_port_names)
 	end % if ~isempty(misc_ports)
@@ -218,7 +173,7 @@ if ~isempty(ext_ports)
 	ext_port_names = fieldnames(ext_ports);
 
 	for k = 1:length(ext_port_names)
-	    cur_ext_port = getfield(ext_ports,ext_port_names{k});
+	    cur_ext_port = getfield(ext_ports, ext_port_names{k});
 
 	    try
 	        mhs_constraints = cur_ext_port{6};
@@ -226,7 +181,7 @@ if ~isempty(ext_ports)
 	        mhs_constraints_str = '';
 
 	        for n = 1:length(mhs_constraints_fields)
-	            mhs_constraint_value = eval(['mhs_constraints.',mhs_constraints_fields{n}]);
+	            mhs_constraint_value = eval(['mhs_constraints.', mhs_constraints_fields{n}]);
 
 	            if isempty(mhs_constraint_value)
 	                mhs_constraints_str = [mhs_constraints_str, ', ', mhs_constraints_fields{n}];
@@ -241,15 +196,15 @@ if ~isempty(ext_ports)
 	    if cur_ext_port{1} == 1
             try
                 if strcmp(cur_ext_port{5}, 'vector=true')
-                    str = [str, 'PORT ',cur_ext_port{3},' = ',cur_ext_port{3},', DIR = ',cur_ext_port{2},', VEC = [0:0]', mhs_constraints_str, '\n'];
+                    str = [str, 'PORT ', cur_ext_port{3}, ' = ', cur_ext_port{3}, ', DIR = ', cur_ext_port{2}, ', VEC = [0:0]', mhs_constraints_str, '\n'];
                 else
-                    str = [str, 'PORT ',cur_ext_port{3},' = ',cur_ext_port{3},', DIR = ',cur_ext_port{2}, mhs_constraints_str, '\n'];
-                end % strcmp(cur_ext_port{5}, 'vector=true')
+                    str = [str, 'PORT ', cur_ext_port{3}, ' = ', cur_ext_port{3}, ', DIR = ', cur_ext_port{2}, mhs_constraints_str, '\n'];
+                end % strcmp(cur_ext_port{5},  'vector=true')
             catch
-                str = [str, 'PORT ',cur_ext_port{3},' = ',cur_ext_port{3},', DIR = ',cur_ext_port{2}, mhs_constraints_str, '\n'];
+                str = [str, 'PORT ', cur_ext_port{3}, ' = ', cur_ext_port{3}, ', DIR = ', cur_ext_port{2}, mhs_constraints_str, '\n'];
             end % try
 	    else
-	        str = [str, 'PORT ',cur_ext_port{3},' = ',cur_ext_port{3},', DIR = ',cur_ext_port{2},', VEC = [',num2str(cur_ext_port{1}-1),':0]', mhs_constraints_str, '\n'];
+	        str = [str, 'PORT ', cur_ext_port{3}, ' = ', cur_ext_port{3}, ', DIR = ', cur_ext_port{2}, ', VEC = [', num2str(cur_ext_port{1}-1), ':0]', mhs_constraints_str, '\n'];
 	    end % if cur_ext_port{1} == 1
 	end % for j = 1:length(ext_port_names)
 end % ~isempty(ext_ports)

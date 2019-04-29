@@ -42,7 +42,7 @@ s.bypass_auto = get_param(blk_name,'bypass_auto');
 s.en_gain = get_param(blk_name,'en_gain');
 
 switch s.hw_sys
-    case 'ROACH'
+    case {'ROACH2', 'ROACH'}
         if ~isempty(find(strcmp(s.hw_adc, {'adc0', 'adc1'})))
             s.adc_str = s.hw_adc;
         else
@@ -52,7 +52,7 @@ switch s.hw_sys
         ucf_constraints_clock  = struct('IOSTANDARD', 'LVDS_25', 'DIFF_TERM', 'TRUE', 'PERIOD', [num2str(1000/s.adc_clk_rate*4),' ns']);
         ucf_constraints_term   = struct('IOSTANDARD', 'LVDS_25', 'DIFF_TERM', 'TRUE');
         ucf_constraints_noterm = struct('IOSTANDARD', 'LVDS_25');
-    % end case 'ROACH'
+    % end case {'ROACH2', 'ROACH'}
     otherwise
         error(['Unsupported hardware system: ',s.hw_sys]);
 end % end switch s.hw_sys
@@ -62,8 +62,10 @@ b = class(s,'xps_katadc',blk_obj);
 % ip name and version
 b = set(b, 'ip_name', 'kat_adc_interface');
 switch s.hw_sys
-    case 'ROACH'
-        b = set(b, 'ip_version', '1.00.a');
+  case {'ROACH', 'ROACH2'},
+    b = set(b, 'ip_version', '1.00.a');
+    %hard-coded opb0 devices
+    b = set(b, 'opb0_devices', 2);  %IIC and controller
 end % switch s.hw_sys
 
 supp_ip_names    = {'', 'opb_katadccontroller'};
@@ -79,12 +81,31 @@ misc_ports.ctrl_clk_out    = {1 'out' [s.adc_str,'_clk']};
 misc_ports.ctrl_clk90_out  = {1 'out' [s.adc_str,'_clk90']};
 misc_ports.ctrl_clk180_out = {1 'out' [s.adc_str,'_clk180']};
 misc_ports.ctrl_clk270_out = {1 'out' [s.adc_str,'_clk270']};
-misc_ports.ctrl_dcm_locked = {1 'out' [s.adc_str,'_dcm_locked']};
-misc_ports.dcm_reset       = {1 'in'  [s.adc_str,'_dcm_reset']};
-misc_ports.dcm_psdone      = {1 'out' [s.adc_str,'_psdone']};
-misc_ports.dcm_psclk       = {1 'in'  [s.adc_str,'_psclk']};
-misc_ports.dcm_psen        = {1 'in'  [s.adc_str,'_psen']};
-misc_ports.dcm_psincdec    = {1 'in'  [s.adc_str,'_psincdec']};
+
+switch s.hw_sys
+    case 'iBOB'
+        misc_ports.ctrl_dcm_locked   = {1 'out' [s.adc_str,'_dcm_locked']};
+        misc_ports.dcm_reset         = {1 'in'  [s.adc_str,'_dcm_reset']};
+        misc_ports.dcm_psdone        = {1 'out' [s.adc_str,'_psdone']};
+        misc_ports.dcm_psclk       = {1 'in'  [s.adc_str,'_psclk']};
+        misc_ports.dcm_psen        = {1 'in'  [s.adc_str,'_psen']};
+        misc_ports.dcm_psincdec    = {1 'in'  [s.adc_str,'_psincdec']};
+    case 'ROACH'
+        misc_ports.ctrl_dcm_locked   = {1 'out' [s.adc_str,'_dcm_locked']};
+        misc_ports.dcm_reset         = {1 'in'  [s.adc_str,'_dcm_reset']};
+        misc_ports.dcm_psdone        = {1 'out' [s.adc_str,'_psdone']};
+        misc_ports.dcm_psclk       = {1 'in'  [s.adc_str,'_psclk']};
+        misc_ports.dcm_psen        = {1 'in'  [s.adc_str,'_psen']};
+        misc_ports.dcm_psincdec    = {1 'in'  [s.adc_str,'_psincdec']};
+    case 'ROACH2'
+        misc_ports.ctrl_mmcm_locked  = {1 'out' [s.adc_str,'_mmcm_locked']};
+        misc_ports.mmcm_reset        = {1 'in'  [s.adc_str,'_mmcm_reset']};
+        misc_ports.mmcm_psdone       = {1 'out' [s.adc_str,'_psdone']};
+        misc_ports.mmcm_psclk        = {1 'in'  [s.adc_str,'_psclk']};
+        misc_ports.mmcm_psen         = {1 'in'  [s.adc_str,'_psen']};
+        misc_ports.mmcm_psincdec     = {1 'in'  [s.adc_str,'_psincdec']};
+end
+
 b = set(b,'misc_ports',misc_ports);
 
 % external ports

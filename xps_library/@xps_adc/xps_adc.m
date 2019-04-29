@@ -50,7 +50,7 @@ switch s.hw_sys
         ucf_constraints_term   = struct('IOSTANDARD', 'LVDS_25_DT');
         ucf_constraints_noterm = struct('IOSTANDARD', 'LVDS_25');
     % end case 'iBOB'
-    case 'ROACH'
+    case {'ROACH', 'ROACH2'}
         if ~isempty(find(strcmp(s.hw_adc, {'adc0', 'adc1'})))
             s.adc_str = s.hw_adc;
         else
@@ -60,7 +60,7 @@ switch s.hw_sys
         ucf_constraints_clock  = struct('IOSTANDARD', 'LVDS_25', 'DIFF_TERM', 'TRUE', 'PERIOD', [num2str(1000/s.adc_clk_rate*4),' ns']);
         ucf_constraints_term   = struct('IOSTANDARD', 'LVDS_25', 'DIFF_TERM', 'TRUE');
         ucf_constraints_noterm = struct('IOSTANDARD', 'LVDS_25');
-    % end case 'ROACH'
+    % end case {'ROACH', 'ROACH2'}
     otherwise
         error(['Unsupported hardware system: ',s.hw_sys]);
 end % end switch s.hw_sys
@@ -72,8 +72,9 @@ b = set(b, 'ip_name', 'adc_interface');
 switch s.hw_sys
     case 'iBOB'
         b = set(b, 'ip_version', '1.00.a');
-    case 'ROACH'
+    case {'ROACH', 'ROACH2'}
         b = set(b, 'ip_version', '1.01.a');
+        b = set(b, 'opb0_devices', 1); %controller
 end % switch s.hw_sys
 
 supp_ip_names    = {'', 'opb_adccontroller'};
@@ -89,8 +90,17 @@ misc_ports.ctrl_clk_out    = {1 'out' [s.adc_str,'_clk']};
 misc_ports.ctrl_clk90_out  = {1 'out' [s.adc_str,'_clk90']};
 misc_ports.ctrl_dcm_locked = {1 'out' [s.adc_str,'_dcm_locked']};
 if strcmp(get(b,'ip_version'), '1.01.a')
-    misc_ports.dcm_reset        = {1 'in'  [s.adc_str,'_dcm_reset']};
-    misc_ports.dcm_psdone       = {1 'out' [s.adc_str,'_psdone']};
+    switch s.hw_sys
+        case 'iBOB'
+            misc_ports.dcm_reset        = {1 'in'  [s.adc_str,'_dcm_reset']};
+            misc_ports.dcm_psdone       = {1 'out' [s.adc_str,'_psdone']};
+        case 'ROACH'
+            misc_ports.dcm_reset        = {1 'in'  [s.adc_str,'_dcm_reset']};
+            misc_ports.dcm_psdone       = {1 'out' [s.adc_str,'_psdone']};
+        case 'ROACH2'
+            misc_ports.mmcm_reset        = {1 'in'  [s.adc_str,'_mmcm_reset']};
+            misc_ports.mmcm_psdone       = {1 'out' [s.adc_str,'_psdone']};
+    end
     misc_ports.ctrl_clk180_out  = {1 'out' [s.adc_str,'_clk180']};
     misc_ports.ctrl_clk270_out  = {1 'out' [s.adc_str,'_clk270']};
 end

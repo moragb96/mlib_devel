@@ -20,7 +20,7 @@
 %                                                                             %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-sysgen_blk = find_system(gcs, 'SearchDepth', 1,'FollowLinks','on','LookUnderMasks','all','Tag','genX');
+sysgen_blk = find_system(gcs, 'SearchDepth', 1, 'FollowLinks', 'on', 'LookUnderMasks', 'all', 'Tag', 'genX');
 if length(sysgen_blk) == 1
     xsg_blk = sysgen_blk{1};
 else
@@ -28,59 +28,17 @@ else
 end
 
 [hw_sys, hw_subsys] = xps_get_hw_plat(get_param(gcb,'hw_sys'));
-clk_src = get_param(gcb, [hw_sys, '_clk_src']);
+clk_src = get_param(gcb, 'clk_src');
 syn_tool = get_param(gcb, 'synthesis_tool');
-
-set_param(gcb, 'clk_src', clk_src);
 
 ngc_config.include_clockwrapper = 1;
 ngc_config.include_cf = 0;
 
 switch hw_sys
-    case 'iBOB'
-        xlsetparam(xsg_blk,'xilinxfamily', 'Virtex2P',...
-            'part', 'xc2vp50',...
-            'speed', '-7',...
-            'testbench', 'off',...
-            'package', 'ff1152');
-        set_param(gcb,'mpc_type','powerpc405');
-    % end case 'iBOB'
-    case 'CORR'
-        xlsetparam(xsg_blk,'xilinxfamily', 'Virtex2P',...
-            'part', 'xc2vp20',...
-            'speed', '-6',...
-            'testbench', 'off',...
-            'package', 'ff896');
-        set_param(gcb,'mpc_type','powerpc405');
-    % end case 'CORR'
-    case 'BEE2_ctrl'
-        xlsetparam(xsg_blk,'xilinxfamily', 'Virtex2P',...
-            'part', 'xc2vp70',...
-            'speed', '-7',...
-            'testbench', 'off',...
-            'package', 'ff1704');
-        set_param(gcb,'mpc_type','powerpc405');
-    % end case 'BEE2_ctrl'
-    case 'BEE2_usr'
-        xlsetparam(xsg_blk,'xilinxfamily', 'Virtex2P',...
-            'part', 'xc2vp70',...
-            'speed', '-7',...
-            'testbench', 'off',...
-            'package', 'ff1704');
-        set_param(gcb,'mpc_type','powerpc405');
-    % end case 'BEE2_usr'
-    case 'ML402'
-        xlsetparam(xsg_blk,'xilinxfamily', 'Virtex4',...
-            'part', 'xc4vsx35',...
-            'speed', '-10',...
-            'testbench', 'off',...
-            'package', 'ff668');
-        set_param(gcb,'mpc_type','microblaze');
-    % end case 'ML402'
     case 'ROACH'
         switch hw_subsys
             case 'lx110t'
-                xlsetparam(xsg_blk,'xilinxfamily', 'Virtex5',...
+                xlsetparam(xsg_blk, 'xilinxfamily', 'Virtex5',...
                     'part', 'xc5vlx110t',...
                     'speed', '-1',...
                     'testbench', 'off',...
@@ -88,7 +46,7 @@ switch hw_sys
             % end case 'lx110t'
 
             case 'sx95t'
-                xlsetparam(xsg_blk,'xilinxfamily', 'Virtex5',...
+                xlsetparam(xsg_blk, 'xilinxfamily', 'Virtex5',...
                     'part', 'xc5vsx95t',...
                     'speed', '-1',...
                     'testbench', 'off',...
@@ -96,18 +54,85 @@ switch hw_sys
             % end case 'sx95t'
         end % switch hw_subsys
 
-        set_param(gcb,'mpc_type','powerpc440_ext');
-    % end case 'ROACH'
+    % end case 'ROACH
+    case 'ROACH2'
+        switch hw_subsys
+            case 'sx475t'
+                xlsetparam(xsg_blk, 'xilinxfamily', 'Virtex6',...
+                    'part', 'xc6vsx475t',...
+                    'speed', '-1',...
+                    'testbench', 'off',...
+                    'package', 'ff1759');
+            % end case 'lx110t'
+        end % switch hw_subsys
+    % end case 'ROACH2'
+
+    case 'MKDIG'
+        switch hw_subsys
+            case 'sx475t'
+                xlsetparam(xsg_blk, 'xilinxfamily', 'Kintex7',...
+                    'part', 'xc6vsx475t',...
+                    'speed', '-1',...
+                    'testbench', 'off',...
+                    'package', 'ff1759');
+            % end case 'lx110t'
+        end % switch hw_subsys
+    % end case 'MKDIG'
+
+    case 'SNAP'
+        switch hw_subsys
+            case 'xc7k160t'
+                xlsetparam(xsg_blk, 'xilinxfamily', 'Kintex7',...
+                    'part', 'xc7k160t',...
+                    'speed', '-2',...
+                    'testbench', 'off',...
+                    'package', 'ffg676');
+            % end case 'lx110t'
+        end % switch hw_subsys
+    % end case 'MKDIG'
+
+    case 'KC705'
+        switch hw_subsys
+            case 'xc7k325t'
+                xlsetparam(xsg_blk, 'xilinxfamily', 'Kintex7',...
+                    'part', 'xc7k325t',...
+                    'speed', '-2',...
+                    'testbench', 'off',...
+                    'package', 'ffg900');
+            % end case 'lx110t'
+        end % switch hw_subsys
+    % end case 'MKDIG'
+
+    case 'MX175'
+        switch hw_subsys
+            case 'xc7vx690t'
+                xlsetparam(xsg_blk, 'xilinxfamily', 'Virtex7',...
+                    'part', 'xc7vx690t',...
+                    'speed', '-2',...
+                    'testbench', 'off',...
+                    'package', 'ffg1930');
+            %
+        end % switch hw_subsys
+    % end case 'MX175'
+
+    case 'SKARAB'
+        switch hw_subsys
+            case 'xc7vx690t'
+                xlsetparam(xsg_blk, 'xilinxfamily', 'Virtex7',...
+                    'part', 'xc7vx690t',...
+                    'speed', '-2',...
+                    'testbench', 'off',...
+                    'package', 'ffg1927');
+            % end case
+        end % switch hw_subsys
+    % end case 'SKARAB'
     otherwise
-        errordlg(['Unsupported hardware system: ',hw_sys]);
+        errordlg(['Unsupported hardware system: ', hw_sys]);
     % end 'otherwise'
 end % switch hw_sys
 
 xlsetparam(xsg_blk,...
-    'directory', ['./',clear_name(get_param(gcb,'parent')),'/sysgen'],...
     'sysclk_period', num2str(1000/clk_rate),...
-    'compilation', 'NGC Netlist',...
-    'ngc_config',ngc_config,...
     'synthesis_language', 'VHDL');
 
 if strcmp(syn_tool, 'Leonardo Spectrum')
@@ -116,20 +141,30 @@ else
     xlsetparam(xsg_blk, 'synthesis_tool', syn_tool)
 end
 
+xlsetparam(xsg_blk,'clock_loc','d7hack')
+
 switch clk_src
     case {'sys_clk' 'sys_clk2x'}
     case {'usr_clk' 'usr_clk2x'}
-        if (strcmp(hw_sys,{'CORR', 'ROACH'}))
-            errordlg(['Invalid clock source (',clk_src,'for hardware platform: ',hw_sys]);
+        if (strcmp(hw_sys,{'ROACH', 'ROACH2'}))
+            errordlg(['Invalid clock source ', clk_src, ' for hardware platform: ', hw_sys]);
+        end
+    case {'aux_clk'}
+        if (strcmp(hw_sys,{'ROACH', 'ROACH2', 'SKARAB'}))
+            errordlg(['Invalid clock source ', clk_src, ' for hardware platform: ', hw_sys]);
         end
     case {'aux0_clk' 'aux1_clk' 'aux0_clk2x' 'aux1_clk2x' 'arb_clk'}
-        if isempty(find(strcmp(hw_sys,{'ROACH'})))
-            errordlg(['Invalid clock source (',clk_src,'for hardware platform: ',hw_sys]);
+        if isempty(find(strcmp(hw_sys,{'ROACH'}), 1))
+            errordlg(['Invalid clock source ', clk_src, ' for hardware platform: ', hw_sys]);
         end
     case {'adc0_clk' 'adc1_clk' 'dac0_clk' 'dac1_clk'}
-        if isempty(find(strcmp(hw_sys,{'iBOB', 'ROACH'})))
-            errordlg(['Invalid clock source (',clk_src,'for hardware platform: ',hw_sys]);
+        if isempty(find(strcmp(hw_sys,{'ROACH', 'ROACH2', 'SNAP', 'MX175', 'SKARAB'}), 1))
+            errordlg(['Invalid clock source ', clk_src, ' for hardware platform: ', hw_sys]);
+        end
+    case {'adc_clk'}
+        if isempty(find(strcmp(hw_sys,{'MKDIG'}), 1))
+            errordlg(['Invalid clock source ', clk_src, ' for hardware platform: ', hw_sys]);
         end
     otherwise
-        errordlg(['Unsupported clock source: ',clk_src]);
+        errordlg(['Unsupported clock source: ', clk_src]);
 end
