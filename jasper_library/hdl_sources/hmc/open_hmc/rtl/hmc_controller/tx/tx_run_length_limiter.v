@@ -161,3 +161,4 @@ always @(posedge clk)  begin `endif
 end
 
 endmodule
+`default_nettype wire
