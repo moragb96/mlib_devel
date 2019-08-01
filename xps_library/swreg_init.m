@@ -13,6 +13,16 @@ catch ex
     dump_and_rethrow(ex);
 end
 
+reg = find_system(blk);		
+bitwidth_num = str2double(get_param(reg,'bitwidths'));
+if(bitwidth_num<0 || bitwidth_num>32)		%check that the bidwidth specified for the software register is =<32-bits and >=0-bits.
+    error("Must specify bitwidth in bounds [0:32] for software register: %s", reg{1});
+end
+bin_pt_num = str2double(get_param(reg,'bin_pts'));
+if(bin_pt_num>bitwidth_num || bin_pt_num<0)		%check that the bin_pt specified for the software register is =<bitwidths and >=0-bits.
+    error(["Must specify bin_pt in bounds [0:bitwidth] for software register: %s", reg{1}]);
+end
+
 % perform a sanity check on the mask values
 [numios, current_names, current_widths, current_bins, current_types] = swreg_maskcheck(blk);
 
