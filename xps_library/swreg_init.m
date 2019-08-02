@@ -14,6 +14,12 @@ catch ex
 end
 
 reg = find_system(blk);		
+init_val = str2double(get_param(reg,'init_val'));
+disp(init_val)
+if(init_val>4294967295)		%check that the bidwidth of the initial value is =<32-bits.
+    error("Initial value larger than 32 bits for software register: %s", reg{1});
+end
+
 bitwidth_num = str2double(get_param(reg,'bitwidths'));
 if(bitwidth_num<0 || bitwidth_num>32)		%check that the bidwidth specified for the software register is =<32-bits and >=0-bits.
     error("Must specify bitwidth in bounds [0:32] for software register: %s", reg{1});
