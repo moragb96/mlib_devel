@@ -21,22 +21,19 @@ provides:
   - qsfp0
   - qsfp1
 pins:
-# 156.25Mhz clock
-  user_si570_clock_p:
+# 156.25Mhz clock, {USER_SI570_CLOCK in Alveo xdc file}
+  sys_clk_p:
     loc: G30
     iostd: LVDS
-  user_si570_clock_n:
+  sys_clk_n:
     loc: F30
     iostd: LVDS
-  # PCI Express lanes
-#  pcie_rst_n:
-#    loc: BF41
-#    iostd: LVCMOS18
-  qsfp_clock_p:
+# {QSFP_CLOCK in Alveo xdc file}
+  qsfp_mgt_ref_clk_p:
     loc:
       - R40
       - M42
-  qsfp_clock_n:
+  qsfp_mgt_ref_clk_n:
     loc:
       - R41
       - M43
@@ -45,7 +42,7 @@ pins:
       - G32
       - G33
     iostd: LVCMOS18
-  qsfp_rx_p:
+  qsfp_mgt_rx_p:
     loc:
       - L53
       - K51
@@ -55,7 +52,7 @@ pins:
       - F51
       - E53
       - D51
-  qsfp_rx_n:
+  qsfp_mgt_rx_n:
     loc:
       - L54
       - K52
@@ -65,7 +62,7 @@ pins:
       - F52
       - E54
       - D52
-  qsfp_tx_p:
+  qsfp_mgt_tx_p:
     loc:
       - L48
       - L44
@@ -75,7 +72,7 @@ pins:
       - E48
       - C48
       - A49
-  qsfp_tx_n:
+  qsfp_mgt_tx_n:
     loc:
       - L49
       - L45
@@ -86,17 +83,7 @@ pins:
       - C49
       - A50
 
-#  qsfp_modprs:
-#    iostd: LVCMOS18
-#    loc: [BN35, BN34, BP34, BL32]
-#  qsfp_sda:
-#    iostd: LVCMOS18
-#    loc: [BN30, BM30, BP32, BM34]
-#  qsfp_scl:
-#    iostd: LVCMOS18
-#    loc: [BN29, BL30, BN32, BM32]
-
-# pcie x8 bifrucation lane 0-7 (AK13, AK12)
+# pcie x8 bifrucation lane 0-7 or x16 (AK13, AK12)
 # pcie x8 bifrucation lane 8-15 or x16 (AP13, AP12)
   pcie_sys_clk_p:
     loc:
@@ -106,6 +93,7 @@ pins:
     loc:
       - AK12
       - AP12
+# {pci_exp_rn/tx in Alveo xdc file}
   pcie_gty_rx_p:
     loc:
       - AL2
@@ -142,5 +130,41 @@ pins:
       - BB9
       - BC11
       - BC7
- 
+      - AP12
+  pcie_gty_rx_n:
+    loc:
+      - AL1
+      - AM3
+      - AN5
+      - AN1
+      - AP3
+      - AR1
+      - AT3
+      - AU1
+      - AV3
+      - AW5
+      - AW1
+      - AY3
+      - BA5
+      - BA1
+      - BB3
+      - BC1
+  pcie_gty_tx_n:
+    loc:
+      - AL10
+      - AM8
+      - AN01
+      - AP8
+      - AR10
+      - AR6
+      - AT8
+      - AU10
+      - AU6
+      - AV8
+      - AW10
+      - AY8
+      - BA10
+      - BB8
+      - BC10
+      - BC6 
 
